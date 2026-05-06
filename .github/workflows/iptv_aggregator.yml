@@ -1,0 +1,38 @@
+name: IPTV Aggregator
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # запуск каждые 6 часов
+  workflow_dispatch:
+
+jobs:
+  run-aggregator:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install requests m3u8
+
+      - name: Run Vladik Aggregator
+        run: |
+          python Vladik_agregator_m3u8.py
+
+      - name: Commit updated playlists
+        run: |
+          git config user.name "iptv-bot"
+          git config user.email "iptv-bot@example.com"
+          git add output/*
+          git commit -m "Auto-update playlists" || echo "No changes"
+          git push || echo "Nothing to push"
