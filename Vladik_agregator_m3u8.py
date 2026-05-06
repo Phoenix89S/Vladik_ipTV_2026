@@ -54,7 +54,7 @@ def parse_m3u(text):
     return channels
 
 # -----------------------------
-# ПРОВЕРКА ЖИВОСТИ HLS
+# ПРОВЕРКА ЖИВОСТИ HLS (исправленная)
 # -----------------------------
 def check_hls(url):
     try:
@@ -63,9 +63,17 @@ def check_hls(url):
             return None
 
         playlist = m3u8.loads(r.text)
+
+        # Если это variant playlist — переходим внутрь
         if not playlist.segments:
+            if playlist.playlists:
+                sub = playlist.playlists[0].uri
+                if not sub.startswith("http"):
+                    sub = urljoin(url, sub)
+                return check_hls(sub)
             return None
 
+        # Проверяем первый сегмент
         seg = playlist.segments[0].uri
         if not seg.startswith("http"):
             seg = urljoin(url, seg)
@@ -74,11 +82,9 @@ def check_hls(url):
         if rs.status_code != 200:
             return None
 
-        size = int(rs.headers.get("Content-Length", 0))
-        if size < 1000:
-            return None
-
+        # Если сегмент скачался — поток живой
         return r.text
+
     except:
         return None
 
@@ -203,7 +209,7 @@ def main():
     with open("output/neighbors/neighbors.m3u", "w", encoding="utf-8") as f:
         f.write(build_m3u(neighbors))
 
-    print("Готово!")
+    print("Готово! Рабочие потоки и соседи собраны.")
 
 if __name__ == "__main__":
     main()
