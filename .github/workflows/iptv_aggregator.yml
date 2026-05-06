@@ -1,38 +1,80 @@
-name: IPTV Aggregator
+name: IPTV Aggregator with DEBUG
 
 on:
-  schedule:
-    - cron: "0 */6 * * *"   # запуск каждые 6 часов
   workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *"   # каждые 6 часов
 
 jobs:
-  run-aggregator:
+  build:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    # -----------------------------
+    # 1. CHECKOUT
+    # -----------------------------
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+    # -----------------------------
+    # 2. PYTHON
+    # -----------------------------
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
 
-      - name: Install dependencies
-        run: |
-          pip install requests m3u8
+    - name: Install dependencies
+      run: |
+        pip install requests m3u8
 
-      - name: Run Vladik Aggregator
-        run: |
-          python Vladik_agregator_m3u8.py
+    # -----------------------------
+    # 3. DEBUG: показать структуру репо
+    # -----------------------------
+    - name: DEBUG — Repository structure
+      run: |
+        echo "===== REPOSITORY ROOT ====="
+        ls -R .
 
-      - name: Commit updated playlists
-        run: |
-          git config user.name "iptv-bot"
-          git config user.email "iptv-bot@example.com"
-          git add output/*
-          git commit -m "Auto-update playlists" || echo "No changes"
-          git push || echo "Nothing to push"
+    # -----------------------------
+    # 4. RUN PARSER
+    # -----------------------------
+    - name: Run aggregator with DEBUG
+      run: |
+        echo "===== START PARSER ====="
+        python3 Vladik_agregator_m3u8.py
+      continue-on-error: true
+
+    # -----------------------------
+    # 5. DEBUG — показать выходные файлы
+    # -----------------------------
+    - name: DEBUG — Output structure
+      run: |
+        echo "===== OUTPUT/WORKING ====="
+        ls -R output/working || echo "NO WORKING FILES"
+        echo "===== OUTPUT/NEIGHBORS ====="
+        ls -R output/neighbors || echo "NO NEIGHBORS FILES"
+
+    # -----------------------------
+    # 6. UPLOAD ARTIFACTS
+    # -----------------------------
+    - name: Upload working playlist
+      uses: actions/upload-artifact@v4
+      with:
+        name: working-playlist
+        path: output/working
+
+    - name: Upload neighbors playlist
+      uses: actions/upload-artifact@v4
+      with:
+        name: neighbors-playlist
+        path: output/neighbors
+
+    # -----------------------------
+    # 7. DEBUG — финальный лог
+    # -----------------------------
+    - name: DEBUG — Final log
+      run: |
+        echo "===== DEBUG FINISHED ====="
+        echo "Worker URL: ${{ secrets.WORKER_URL }}"
+        echo "Parser executed."
