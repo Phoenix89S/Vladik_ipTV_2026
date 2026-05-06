@@ -48,13 +48,16 @@ def parse_m3u(text):
     for line in text.splitlines():
         line = line.strip()
         if line.startswith("#EXTINF"):
-            name = line.split(",", 1)[1].strip()
+            if "," in line:
+                name = line.split(",", 1)[1].strip()
+            else:
+                name = "Unknown"
         elif line.startswith("http"):
-            channels.append({"name": name, "url": line})
+            channels.append({"name": name or "Unknown", "url": line})
     return channels
 
 # -----------------------------
-# ПРОВЕРКА ЖИВОСТИ HLS (исправленная)
+# ПРОВЕРКА HLS
 # -----------------------------
 def check_hls(url):
     try:
@@ -64,7 +67,7 @@ def check_hls(url):
 
         playlist = m3u8.loads(r.text)
 
-        # Если это variant playlist — переходим внутрь
+        # Variant playlist
         if not playlist.segments:
             if playlist.playlists:
                 sub = playlist.playlists[0].uri
@@ -73,7 +76,7 @@ def check_hls(url):
                 return check_hls(sub)
             return None
 
-        # Проверяем первый сегмент
+        # Проверяем сегмент
         seg = playlist.segments[0].uri
         if not seg.startswith("http"):
             seg = urljoin(url, seg)
@@ -82,11 +85,42 @@ def check_hls(url):
         if rs.status_code != 200:
             return None
 
-        # Если сегмент скачался — поток живой
-        return r.text
+        return True
 
     except:
         return None
+
+# -----------------------------
+# УНИВЕРСАЛЬНАЯ ПРОВЕРКА ПОТОКА
+# -----------------------------
+def check_stream(url):
+    try:
+        # 1) Если URL содержит .m3u8 → HLS
+        if ".m3u8" in url:
+            return check_hls(url)
+
+        # 2) Пробуем получить ответ
+        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT, stream=True)
+        if r.status_code != 200:
+            return None
+
+        # 3) Если ответ похож на HLS-плейлист
+        try:
+            text_start = r.text[:20].strip()
+            if text_start.startswith("#EXTM3U"):
+                return check_hls(url)
+        except:
+            pass
+
+        # 4) Иначе — прямой поток (FLV/TS)
+        chunk = next(r.iter_content(chunk_size=512), None)
+        if chunk:
+            return True
+
+    except:
+        return None
+
+    return None
 
 # -----------------------------
 # ИЗВЛЕЧЕНИЕ НАЗВАНИЯ ИЗ M3U8
@@ -128,13 +162,21 @@ def scan_neighbors_for_channel(channel):
 
     def check(i):
         candidate_url = url.replace(str(base_id), str(i))
-        text = check_hls(candidate_url)
-        if not text:
+        ok = check_stream(candidate_url)
+        if not ok:
             return None
-        name = extract_name_from_m3u8(text)
-        if not name:
-            return None
-        return {"name": name, "url": candidate_url}
+
+        # Если это HLS — пробуем вытащить имя
+        if ".m3u8" in candidate_url:
+            try:
+                text = requests.get(candidate_url, headers=HEADERS, timeout=TIMEOUT).text
+                name = extract_name_from_m3u8(text)
+                if name:
+                    return {"name": name, "url": candidate_url}
+            except:
+                pass
+
+        return {"name": channel["name"], "url": candidate_url}
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS_NEIGHBORS) as ex:
         for item in ex.map(check, range(base_id - NEIGHBOR_RADIUS, base_id + NEIGHBOR_RADIUS + 1)):
@@ -165,8 +207,8 @@ def collect_working_streams(source_url):
     working = []
 
     def check_channel(c):
-        t = check_hls(c["url"])
-        return c if t else None
+        ok = check_stream(c["url"])
+        return c if ok else None
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS_CHECK) as ex:
         for res in ex.map(check_channel, channels):
