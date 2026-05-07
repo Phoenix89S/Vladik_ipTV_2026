@@ -1,0 +1,30 @@
+#EXTM3U
+#EXTINF:-1,НСТ (Настоящее Страшное Телевидение)
+https://a3569457567-s70378.cdn.ngenix.net/nst/2/index.m3u8
+
+#EXTINF:-1,Scream
+https://a3569457567-s70378.cdn.ngenix.net/scream/2/index.m3u8
+
+#EXTINF:-1,Кинопремьера (Ред Медиа)
+https://a3569457567-s70378.cdn.ngenix.net/kinopremiere/2/index.m3u8
+
+#EXTINF:-1,Кинохит (Ред Медиа)
+https://a3569457567-s70378.cdn.ngenix.net/kinohit/2/index.m3u8
+
+#EXTINF:-1,Киносемья (Ред Медиа)
+https://a3569457567-s70378.cdn.ngenix.net/kinosemya/2/index.m3u8
+
+#EXTINF:-1,Киноужас (Ред Медиа)
+https://a3569457567-s70378.cdn.ngenix.net/kinoujas/2/index.m3u8
+
+#EXTINF:-1,Мужское кино (Ред Медиа)
+https://a3569457567-s70378.cdn.ngenix.net/muzhskoe_kino/2/index.m3u8
+
+#EXTINF:-1,Киносвидание (Ред Медиа)
+https://a3569457567-s70378.cdn.ngenix.net/kinosvidanie/2/index.m3u8
+
+#EXTINF:-1,Кинокомедия (Ред Медиа)
+https://a3569457567-s70378.cdn.ngenix.net/kinokomediya/2/index.m3u8
+
+#EXTINF:-1,Родное кино (Ред Медиа)
+https://a3569457567-s70378.cdn.ngenix.net/rodnoe_kino/2/index.m3u8
