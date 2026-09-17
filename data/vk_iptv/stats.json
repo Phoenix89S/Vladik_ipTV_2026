@@ -27,6 +27,7 @@
     "playlist_url_written_as_stream": false,
     "non_stream_post_links_written_to_final_m3u": false,
     "all_post_links_saved_to_links_jsonl": true,
+    "embedded_m3u_in_post_text": true,
     "max_playlist_depth": 2
   },
   "source": {
