@@ -16,6 +16,7 @@ VK IPTV / M3U COLLECTOR — FULL REBUILD
   8. Сохранять происхождение каждой записи.
   9. Не записывать URL самого M3U как "канал", если это действительно M3U.
  10. Сохранять диагностические файлы, которые ожидает GitHub Actions.
+ 11. Поддержка встроенного M3U-текста прямо в теле поста (#EXTINF + URL).
 
 Зависимости:
     pip install requests beautifulsoup4
@@ -24,8 +25,8 @@ VK IPTV / M3U COLLECTOR — FULL REBUILD
     python VK_IPTV_M3U_COLLECTOR.py \
       --url "https://vk.ru/club228871429" \
       --output "vk_iptv_output" \
-      --max-playlist-depth 2 \
-      --max-pages 1000 \
+      --max-playlist-depth 3 \
+      --max-pages 500 \
       --verbose
 """
 
@@ -502,6 +503,22 @@ def looks_like_direct_stream(url: str) -> bool:
     )
 
     return any(x in query for x in stream_query_markers)
+
+
+def looks_like_embedded_m3u(text: str) -> bool:
+    """
+    True, когда тело поста само по себе является фрагментом M3U
+    (есть #EXTM3U или строки #EXTINF).
+    """
+    sample = (text or "")[:100_000].lstrip("\ufeff \t\r\n")
+    if not sample:
+        return False
+    upper = sample.upper()
+    return (
+        upper.startswith("#EXTM3U")
+        or "#EXTINF:" in upper
+        or re.search(r"(?im)^\s*#EXTINF", sample) is not None
+    )
 
 
 # ============================================================================
@@ -1412,10 +1429,40 @@ class Collector:
     def process_post(self, post: Post) -> None:
         self.stats.posts_processed += 1
 
+        # ------------------------------------------------------------------
+        # A. Встроенный M3U-текст прямо в теле поста
+        # ------------------------------------------------------------------
+        if looks_like_embedded_m3u(post.text):
+            LOG.info("EMBEDDED M3U detected in post %s", post.post_id)
+
+            records, nested = parse_m3u(
+                post.text,
+                playlist_url=post.url,          # источником считаем сам пост
+                source_page=post.page_url or self.page_url,
+                source_post=post.url,
+                depth=0,
+                post_text=post.text,
+            )
+
+            self.stats.playlist_records += len(records)
+            self.records.extend(records)
+
+            for nested_url in nested:
+                self.stats.nested_playlist_urls += 1
+                self.collect_playlist(
+                    nested_url,
+                    post.url,
+                    1,
+                    post.text,
+                )
+
+        # ------------------------------------------------------------------
+        # B. Обычное извлечение URL (старая логика)
+        # ------------------------------------------------------------------
         urls = post_urls(post, self.page_url)
         self.stats.urls_found_in_posts += len(urls)
 
-        if not urls:
+        if not urls and not looks_like_embedded_m3u(post.text):
             LOG.debug(
                 "POST WITHOUT URL: %s | %s",
                 post.post_id,
@@ -1820,6 +1867,7 @@ class Collector:
             "playlist_url_written_as_stream": False,
             "non_stream_post_links_written_to_final_m3u": False,
             "all_post_links_saved_to_links_jsonl": True,
+            "embedded_m3u_in_post_text": True,
             "max_playlist_depth": self.max_playlist_depth,
         }
 
@@ -1858,6 +1906,7 @@ class Collector:
             handle.write(f"All links: {self.stats.all_links_found}\n")
             handle.write(f"Errors: {self.stats.errors}\n")
             handle.write("\nNO DEDUPLICATION: YES\n")
+            handle.write("EMBEDDED M3U SUPPORT: YES\n")
 
         LOG.info("SAVED: %s", combined_path)
         LOG.info("SAVED: %s", self.output_dir / "records.jsonl")
@@ -1881,6 +1930,7 @@ class Collector:
         LOG.info("TOTAL RECORDS  : %d", len(self.records))
         LOG.info("Errors         : %d", self.stats.errors)
         LOG.info("NO DEDUP       : TRUE")
+        LOG.info("EMBEDDED M3U   : TRUE")
         LOG.info("============================================================")
 
 
@@ -1892,7 +1942,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Full public VK IPTV/M3U collector. "
-            "Crawls post pages and playlists WITHOUT stream deduplication."
+            "Crawls post pages and playlists WITHOUT stream deduplication. "
+            "Supports embedded M3U text inside posts."
         )
     )
 
