@@ -1,19 +1,36 @@
 {
-  "pages_requested": 1,
-  "pages_ok": 1,
-  "urls_found_in_pages": 28,
-  "direct_records": 28,
+  "pages_requested": 4,
+  "pages_ok": 4,
+  "pages_failed": 0,
+  "posts_found": 0,
+  "posts_processed": 0,
+  "urls_found_in_posts": 0,
+  "all_links_found": 0,
+  "direct_stream_urls": 0,
+  "non_stream_links": 0,
   "playlist_urls_found": 0,
   "playlists_requested": 0,
   "playlists_ok": 0,
   "playlists_failed": 0,
+  "playlists_not_m3u": 0,
   "playlist_records": 0,
   "nested_playlist_urls": 0,
-  "total_records": 28,
+  "total_records": 0,
   "errors": 0,
   "repeated_playlist_urls": 0,
-  "records_by_source_type": {
-    "direct": 28
+  "repeated_post_ids": 0,
+  "rules": {
+    "stream_deduplication": false,
+    "channel_deduplication": false,
+    "record_deduplication": false,
+    "download_playlist_before_parse": true,
+    "playlist_url_written_as_stream": false,
+    "non_stream_post_links_written_to_final_m3u": false,
+    "all_post_links_saved_to_links_jsonl": true,
+    "max_playlist_depth": 2
   },
-  "note": "NO DEDUPLICATION: repeated URLs/channels are intentionally retained."
+  "source": {
+    "url": "https://vk.ru/club228871429",
+    "public_only": true
+  }
 }

@@ -1,23 +1,33 @@
-2026-09-17 19:29:33,804 | INFO | ================================================================================
-2026-09-17 19:29:33,804 | INFO | VK IPTV COLLECTOR START
-2026-09-17 19:29:33,804 | INFO | PAGE: https://m.vk.ru/club228871429
-2026-09-17 19:29:33,804 | INFO | NO DEDUPLICATION
-2026-09-17 19:29:33,804 | INFO | ================================================================================
-2026-09-17 19:29:33,804 | INFO | VK PAGE 1/1: https://m.vk.ru/club228871429
-2026-09-17 19:29:34,854 | INFO | ================================================================================
-2026-09-17 19:29:34,855 | INFO | VK IPTV COLLECTOR FINISHED
-2026-09-17 19:29:34,855 | INFO | ================================================================================
-2026-09-17 19:29:34,855 | INFO | Pages requested      : 1
-2026-09-17 19:29:34,855 | INFO | Pages OK             : 1
-2026-09-17 19:29:34,855 | INFO | URLs found           : 28
-2026-09-17 19:29:34,855 | INFO | Direct records       : 28
-2026-09-17 19:29:34,855 | INFO | Playlist URLs        : 0
-2026-09-17 19:29:34,855 | INFO | Playlists requested  : 0
-2026-09-17 19:29:34,855 | INFO | Playlists OK         : 0
-2026-09-17 19:29:34,855 | INFO | Playlists failed     : 0
-2026-09-17 19:29:34,855 | INFO | Playlist records     : 0
-2026-09-17 19:29:34,855 | INFO | Nested playlists     : 0
-2026-09-17 19:29:34,855 | INFO | TOTAL RECORDS        : 28
-2026-09-17 19:29:34,855 | INFO | Errors               : 0
-2026-09-17 19:29:34,855 | INFO | Output               : /home/runner/work/Vladik_ipTV_2026/Vladik_ipTV_2026/vk_iptv_output
-2026-09-17 19:29:34,856 | INFO | ================================================================================
+2026-09-17 20:26:27,232 | INFO | ============================================================
+2026-09-17 20:26:27,232 | INFO | FULL GROUP CRAWL
+2026-09-17 20:26:27,232 | INFO | SOURCE: https://vk.ru/club228871429
+2026-09-17 20:26:27,233 | INFO | MAX PAGES: 1000
+2026-09-17 20:26:27,233 | INFO | ============================================================
+2026-09-17 20:26:27,233 | INFO | PAGE 1/1000 | reason=initial | https://vk.ru/club228871429
+2026-09-17 20:26:28,590 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
+2026-09-17 20:26:29,297 | INFO | PAGE 2/1000 | reason=offset=20 | https://vk.ru/club228871429?offset=20
+2026-09-17 20:26:29,770 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
+2026-09-17 20:26:30,475 | INFO | PAGE 3/1000 | reason=offset=20 | https://vk.ru/club228871429?page=2
+2026-09-17 20:26:30,962 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
+2026-09-17 20:26:31,667 | INFO | PAGE 4/1000 | reason=offset=20 | https://m.vk.ru/club228871429?offset=20
+2026-09-17 20:26:32,012 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
+2026-09-17 20:26:32,016 | INFO | STOP: 4 consecutive pages without NEW post_id.
+2026-09-17 20:26:32,017 | INFO | CRAWL FINISHED: pages=4 posts=0 records=0
+2026-09-17 20:26:32,017 | INFO | SAVED: vk_iptv_output/combined.m3u
+2026-09-17 20:26:32,018 | INFO | SAVED: vk_iptv_output/records.jsonl
+2026-09-17 20:26:32,018 | INFO | SAVED: vk_iptv_output/posts.jsonl
+2026-09-17 20:26:32,018 | INFO | SAVED: vk_iptv_output/posts_urls.txt
+2026-09-17 20:26:32,018 | INFO | SAVED: vk_iptv_output/playlists.txt
+2026-09-17 20:26:32,018 | INFO | SAVED: vk_iptv_output/links.jsonl
+2026-09-17 20:26:32,018 | INFO | SAVED: vk_iptv_output/stats.json
+2026-09-17 20:26:32,018 | INFO | ============================================================
+2026-09-17 20:26:32,018 | INFO | VK IPTV COLLECTION FINISHED
+2026-09-17 20:26:32,018 | INFO | Posts          : 0
+2026-09-17 20:26:32,018 | INFO | All post links : 0
+2026-09-17 20:26:32,018 | INFO | Playlists      : 0
+2026-09-17 20:26:32,018 | INFO | Playlist recs  : 0
+2026-09-17 20:26:32,018 | INFO | Direct streams : 0
+2026-09-17 20:26:32,018 | INFO | TOTAL RECORDS  : 0
+2026-09-17 20:26:32,018 | INFO | Errors         : 0
+2026-09-17 20:26:32,018 | INFO | NO DEDUP       : TRUE
+2026-09-17 20:26:32,018 | INFO | ============================================================
