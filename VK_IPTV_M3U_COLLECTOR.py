@@ -28,7 +28,7 @@ VK IPTV / M3U COLLECTOR
     python vk_iptv_collector.py
 
 Можно указать другую страницу:
-    python vk_iptv_collector.py --url "https://m.vk.ru/club228871429"
+    python vk_iptv_collector.py --url "https://vk.ru/club228871429"
 
 Результаты:
     vk_iptv_output/combined.m3u
@@ -68,7 +68,7 @@ from urllib3.util.retry import Retry
 # CONFIG
 # ============================================================================
 
-DEFAULT_URL = "https://m.vk.ru/club228871429"
+DEFAULT_URL = "https://vk.ru/club228871429"
 OUTPUT_DIR = Path("vk_iptv_output")
 
 USER_AGENT = (
@@ -164,6 +164,10 @@ class Record:
 class CollectorStats:
     pages_requested: int = 0
     pages_ok: int = 0
+    pages_failed: int = 0
+
+    posts_found: int = 0
+    posts_processed: int = 0
 
     urls_found_in_pages: int = 0
     direct_records: int = 0
@@ -855,10 +859,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-pages",
         type=int,
-        default=1,
+        default=1000,
         help=(
-            "Number of VK page variants to request. "
-            "Default: 1."
+            "Maximum number of VK page variants to request during group crawl. "
+            "Default: 1000."
         ),
     )
 
