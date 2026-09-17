@@ -1,95 +1,121 @@
 #EXTM3U
-#EXTINF:-1 tvg-name="Первый канал HD" tvg-id="1tv.ru",Первый канал HD
+#EXTENC:UTF-8
+#PLAYLIST-INFO:Okko OTT streams (public CDN, geoblocked, auth may be required)
+
+# --- ФЕДЕРАЛЬНЫЕ ---
+#EXTINF:-1 tvg-name="Первый канал HD" tvg-id="1tv.ru" group-title="Федеральные",Первый канал HD
 https://okkotv-live.cdnvideo.ru/channel/Pervii_Kanal_OTT_HD.m3u8
-#EXTINF:-1 tvg-name="Россия 1 HD" tvg-id="russia1.ru",Россия 1 HD
+#EXTINF:-1 tvg-name="Россия 1 HD" tvg-id="russia1.ru" group-title="Федеральные",Россия 1 HD
 https://okkotv-live.cdnvideo.ru/channel/Russia1HD.m3u8
-#EXTINF:-1 tvg-name="Матч! HD" tvg-id="matchtv.ru",Матч! HD
+#EXTINF:-1 tvg-name="Матч! HD" tvg-id="matchtv.ru" group-title="Федеральные",Матч! HD
 https://okkotv-live.cdnvideo.ru/channel/Match_OTT_HD.m3u8
-#EXTINF:-1 tvg-name="5 канал" tvg-id="5-tv.ru",5 канал
+#EXTINF:-1 tvg-name="5 канал" tvg-id="5-tv.ru" group-title="Федеральные",5 канал
 https://okkotv-live.cdnvideo.ru/channel/5_OTT.m3u8
-#EXTINF:-1 tvg-name="Россия 24" tvg-id="vesti.ru",Россия 24
+#EXTINF:-1 tvg-name="Россия 24" tvg-id="vesti.ru" group-title="Федеральные",Россия 24
 https://okkotv-live.cdnvideo.ru/channel/Russia24.m3u8
-#EXTINF:-1 tvg-name="Россия К" tvg-id="tvkultura.ru",Россия К
+#EXTINF:-1 tvg-name="Россия К" tvg-id="tvkultura.ru" group-title="Федеральные",Россия К
 https://okkotv-live.cdnvideo.ru/channel/Russia_K_SD.m3u8
-#EXTINF:-1 tvg-name="РЕН ТВ HD" tvg-id="rentv.ru",РЕН ТВ HD
+#EXTINF:-1 tvg-name="НТВ HD" tvg-id="ntv.ru" group-title="Федеральные",НТВ HD
+https://okkotv-live.cdnvideo.ru/channel/NTV_HD.m3u8
+#EXTINF:-1 tvg-name="ТВ Центр HD" tvg-id="tvc.ru" group-title="Федеральные",ТВ Центр HD
+https://okkotv-live.cdnvideo.ru/channel/TVC_HD.m3u8
+
+# --- РАЗВЛЕКАТЕЛЬНЫЕ ---
+#EXTINF:-1 tvg-name="РЕН ТВ HD" tvg-id="rentv.ru" group-title="Развлекательные",РЕН ТВ HD
 https://okkotv-live.cdnvideo.ru/channel/Rentv_HD_OTT.m3u8
-#EXTINF:-1 tvg-name="СТС HD" tvg-id="ctc.ru",СТС HD
+#EXTINF:-1 tvg-name="СТС HD" tvg-id="ctc.ru" group-title="Развлекательные",СТС HD
 https://okkotv-live.cdnvideo.ru/channel/CTC_HD_OTT.m3u8
-#EXTINF:-1 tvg-name="Домашний HD" tvg-id="domashniy.ru",Домашний HD
+#EXTINF:-1 tvg-name="Домашний HD" tvg-id="domashniy.ru" group-title="Развлекательные",Домашний HD
 https://okkotv-live.cdnvideo.ru/channel/Dom_HD_OTT.m3u8
-#EXTINF:-1 tvg-name="ТВ-3 HD" tvg-id="tv3.ru",ТВ-3 HD
+#EXTINF:-1 tvg-name="ТВ-3 HD" tvg-id="tv3.ru" group-title="Развлекательные",ТВ-3 HD
 https://okkotv-live.cdnvideo.ru/channel/TV3_OTT_HD.m3u8
-#EXTINF:-1 tvg-name="Пятница HD" tvg-id="friday.ru",Пятница HD
+#EXTINF:-1 tvg-name="Пятница HD" tvg-id="friday.ru" group-title="Развлекательные",Пятница HD
 https://okkotv-live.cdnvideo.ru/channel/Pyatnizza_OTT_HD.m3u8
-#EXTINF:-1 tvg-name="ТНТ HD" tvg-id="tnt-online.ru",ТНТ HD
+#EXTINF:-1 tvg-name="ТНТ HD" tvg-id="tnt-online.ru" group-title="Развлекательные",ТНТ HD
 https://okkotv-live.cdnvideo.ru/channel/TNT_OTT_HD.m3u8
-#EXTINF:-1 tvg-name="Звезда" tvg-id="tvzvezda.ru",Звезда
+#EXTINF:-1 tvg-name="Ю" tvg-id="u-tv.ru" group-title="Развлекательные",Ю
+https://okkotv-live.cdnvideo.ru/channel/Yu_OTT.m3u8
+#EXTINF:-1 tvg-name="Че" tvg-id="chetv.ru" group-title="Развлекательные",Че
+https://okkotv-live.cdnvideo.ru/channel/Che_OTT_2.m3u8
+#EXTINF:-1 tvg-name="Звезда" tvg-id="tvzvezda.ru" group-title="Развлекательные",Звезда
 https://okkotv-live.cdnvideo.ru/channel/Zvezda_SD.m3u8
-#EXTINF:-1 tvg-name="Мир" tvg-id="mirtv.ru",Мир
+#EXTINF:-1 tvg-name="Мир" tvg-id="mirtv.ru" group-title="Развлекательные",Мир
 https://okkotv-live.cdnvideo.ru/channel/Mir_OTT.m3u8
-#EXTINF:-1 tvg-name="Муз-ТВ" tvg-id="muz-tv.ru",Муз-ТВ
+#EXTINF:-1 tvg-name="Муз-ТВ" tvg-id="muz-tv.ru" group-title="Развлекательные",Муз-ТВ
 https://okkotv-live.cdnvideo.ru/channel/MuzTV.m3u8
-#EXTINF:-1 tvg-name="Известия HD" tvg-id="iz.ru",Известия HD
-https://okkotv-live.cdnvideo.ru/channel/Izvestiya_HD_2.m3u8
-#EXTINF:-1 tvg-name="СПАС" tvg-id="spastv.ru",СПАС
-https://okkotv-live.cdnvideo.ru/channel/Spas.m3u8
-#EXTINF:-1 tvg-name="A1 HD" tvg-id="a1.ru",A1 HD
+
+# --- КИНО И СЕРИАЛЫ ---
+#EXTINF:-1 tvg-name="A1 HD" tvg-id="a1.ru" group-title="Кино",A1 HD
 https://okkotv-live.cdnvideo.ru/channel/A1_HD.m3u8
-#EXTINF:-1 tvg-name="A2 HD" tvg-id="a2.ru",A2 HD
+#EXTINF:-1 tvg-name="A2 HD" tvg-id="a2.ru" group-title="Кино",A2 HD
 https://okkotv-live.cdnvideo.ru/channel/A2_HD.m3u8
-#EXTINF:-1 tvg-name="Amedia Hit HD" tvg-id="amedia.ru",Amedia Hit HD
+#EXTINF:-1 tvg-name="Amedia Hit HD" tvg-id="amedia.ru" group-title="Кино",Amedia Hit HD
 https://okkotv-live.cdnvideo.ru/channel/Amedia_Hit_HD.m3u8
-#EXTINF:-1 tvg-name="Fox HD" tvg-id="foxtv.ru",Fox HD
+#EXTINF:-1 tvg-name="Fox HD" tvg-id="foxtv.ru" group-title="Кино",Fox HD
 https://okkotv-live.cdnvideo.ru/channel/Fox_HD.m3u8
-#EXTINF:-1 tvg-name="Fox Life HD" tvg-id="foxlifetv.ru",Fox Life HD
+#EXTINF:-1 tvg-name="Fox Life HD" tvg-id="foxlifetv.ru" group-title="Кино",Fox Life HD
 https://okkotv-live.cdnvideo.ru/channel/Fox_Life_HD.m3u8
-#EXTINF:-1 tvg-name="VIP Serial HD" tvg-id="vipplay.ru",VIP Serial HD
-https://okkotv-live.cdnvideo.ru/channel/VIP_Serial_HD.m3u8
-#EXTINF:-1 tvg-name="VIP Premiere HD" tvg-id="vipplay.ru",VIP Premiere HD
-https://okkotv-live.cdnvideo.ru/channel/VIP_Premiere_HD.m3u8
-#EXTINF:-1 tvg-name="VIP Megahit HD" tvg-id="vipplay.ru",VIP Megahit HD
-https://okkotv-live.cdnvideo.ru/channel/VIP_Megahit_HD.m3u8
-#EXTINF:-1 tvg-name="VIP Comedy HD" tvg-id="vipplay.ru",VIP Comedy HD
-https://okkotv-live.cdnvideo.ru/channel/VIP_Comedy_HD.m3u8
-#EXTINF:-1 tvg-name="TV1000 HD" tvg-id="tv1000.ru",TV1000 HD
+#EXTINF:-1 tvg-name="TV1000 HD" tvg-id="tv1000.ru" group-title="Кино",TV1000 HD
 https://okkotv-live.cdnvideo.ru/channel/TV1000_HD.m3u8
-#EXTINF:-1 tvg-name="TV1000 Action HD" tvg-id="tv1000action.ru",TV1000 Action HD
+#EXTINF:-1 tvg-name="TV1000 Action HD" tvg-id="tv1000action.ru" group-title="Кино",TV1000 Action HD
 https://okkotv-live.cdnvideo.ru/channel/TV1000_Action_HD.m3u8
-#EXTINF:-1 tvg-name="TV1000 Русское кино HD" tvg-id="tv1000ruskino.ru",TV1000 Русское кино HD
+#EXTINF:-1 tvg-name="TV1000 Русское кино HD" tvg-id="tv1000ruskino.ru" group-title="Кино",TV1000 Русское кино HD
 https://okkotv-live.cdnvideo.ru/channel/TV1000_Rus_Kino_HD.m3u8
-#EXTINF:-1 tvg-name="Sony Sci-Fi" tvg-id="sonyscifi.ru",Sony Sci-Fi
-https://okkotv-live.cdnvideo.ru/channel/Sony_SciFi.m3u8
-#EXTINF:-1 tvg-name=".black" tvg-id="sonyturbo.ru",.black
-https://okkotv-live.cdnvideo.ru/channel/Sony_Turbo.m3u8
-#EXTINF:-1 tvg-name=".red" tvg-id="sonyet.ru",.red
-https://okkotv-live.cdnvideo.ru/channel/Sony_ET.m3u8
-#EXTINF:-1 tvg-name="Viasat Nature HD" tvg-id="viasatnature.ru",Viasat Nature HD
+#EXTINF:-1 tvg-name="VIP Serial HD" tvg-id="vipplay.ru" group-title="Кино",VIP Serial HD
+https://okkotv-live.cdnvideo.ru/channel/VIP_Serial_HD.m3u8
+#EXTINF:-1 tvg-name="VIP Premiere HD" tvg-id="vipplay.ru" group-title="Кино",VIP Premiere HD
+https://okkotv-live.cdnvideo.ru/channel/VIP_Premiere_HD.m3u8
+#EXTINF:-1 tvg-name="VIP Megahit HD" tvg-id="vipplay.ru" group-title="Кино",VIP Megahit HD
+https://okkotv-live.cdnvideo.ru/channel/VIP_Megahit_HD.m3u8
+#EXTINF:-1 tvg-name="VIP Comedy HD" tvg-id="vipplay.ru" group-title="Кино",VIP Comedy HD
+https://okkotv-live.cdnvideo.ru/channel/VIP_Comedy_HD.m3u8
+
+# --- ДОКУМЕНТАЛЬНЫЕ И НИШЕВЫЕ ---
+#EXTINF:-1 tvg-name="Viasat Nature HD" tvg-id="viasatnature.ru" group-title="Документальные",Viasat Nature HD
 https://okkotv-live.cdnvideo.ru/channel/Viasat_Nature_ad_HD.m3u8
-#EXTINF:-1 tvg-name="Viasat Explore HD" tvg-id="viasatexplore.ru",Viasat Explore HD
+#EXTINF:-1 tvg-name="Viasat Explore HD" tvg-id="viasatexplore.ru" group-title="Документальные",Viasat Explore HD
 https://okkotv-live.cdnvideo.ru/channel/Viasat_Explore_HD.m3u8
-#EXTINF:-1 tvg-name="Viasat History HD" tvg-id="viasathistory.ru",Viasat History HD
+#EXTINF:-1 tvg-name="Viasat History HD" tvg-id="viasathistory.ru" group-title="Документальные",Viasat History HD
 https://okkotv-live.cdnvideo.ru/channel/Viasat_History_ad_HD.m3u8
-#EXTINF:-1 tvg-name="National Geographic HD" tvg-id="natgeotv.com",National Geographic HD
+#EXTINF:-1 tvg-name="National Geographic HD" tvg-id="natgeotv.com" group-title="Документальные",National Geographic HD
 https://okkotv-live.cdnvideo.ru/channel/NGC_HD.m3u8
-#EXTINF:-1 tvg-name="Nat Geo Wild HD" tvg-id="natgeowild.com",Nat Geo Wild HD
+#EXTINF:-1 tvg-name="Nat Geo Wild HD" tvg-id="natgeowild.com" group-title="Документальные",Nat Geo Wild HD
 https://okkotv-live.cdnvideo.ru/channel/NGC_Wild_HD.m3u8
-#EXTINF:-1 tvg-name="Disney" tvg-id="disney.ru",Disney
-https://okkotv-live.cdnvideo.ru/channel/Disney.m3u8
-#EXTINF:-1 tvg-name="СТС Kids HD" tvg-id="ctckids.ru",СТС Kids HD
+
+# --- ДЕТСКИЕ И НИШЕВЫЕ ---
+#EXTINF:-1 tvg-name="СТС Kids HD" tvg-id="ctckids.ru" group-title="Детские",СТС Kids HD
 https://okkotv-live.cdnvideo.ru/channel/CTC_Kids_HD.m3u8
-#EXTINF:-1 tvg-name="Мультиландия HD" tvg-id="multilandia.ru",Мультиландия HD
+#EXTINF:-1 tvg-name="Мультиландия HD" tvg-id="multilandia.ru" group-title="Детские",Мультиландия HD
 https://okkotv-live.cdnvideo.ru/channel/Multilandia_HD.m3u8
-#EXTINF:-1 tvg-name="Калейдоскоп" tvg-id="kaleidoskop.ru",Калейдоскоп
+#EXTINF:-1 tvg-name="Калейдоскоп" tvg-id="kaleidoskop.ru" group-title="Нишевые",Калейдоскоп
 https://okkotv-live.cdnvideo.ru/channel/Kaleidoskop.m3u8
-#EXTINF:-1 tvg-name="Дикий" tvg-id="dikiy.ru",Дикий
+#EXTINF:-1 tvg-name="Дикий" tvg-id="dikiy.ru" group-title="Нишевые",Дикий
 https://okkotv-live.cdnvideo.ru/channel/Dikiy.m3u8
-#EXTINF:-1 tvg-name="Дикая охота HD" tvg-id="dikayaohota.ru",Дикая охота HD
+#EXTINF:-1 tvg-name="Дикая охота HD" tvg-id="dikayaohota.ru" group-title="Нишевые",Дикая охота HD
 https://okkotv-live.cdnvideo.ru/channel/Dikaya_Ohota_HD.m3u8
-#EXTINF:-1 tvg-name="Дикая рыбалка HD" tvg-id="dikayarybalka.ru",Дикая рыбалка HD
+#EXTINF:-1 tvg-name="Дикая рыбалка HD" tvg-id="dikayarybalka.ru" group-title="Нишевые",Дикая рыбалка HD
 https://okkotv-live.cdnvideo.ru/channel/Dikaya_Rybalka_HD.m3u8
-#EXTINF:-1 tvg-name="START Air HD" tvg-id="start.ru",START Air HD
+
+# --- START И SONY ---
+#EXTINF:-1 tvg-name="START Air HD" tvg-id="start.ru" group-title="Кино",START Air HD
 https://okkotv-live.cdnvideo.ru/channel/START_Air_HD.m3u8
-#EXTINF:-1 tvg-name="START World HD" tvg-id="start.ru",START World HD
+#EXTINF:-1 tvg-name="START World HD" tvg-id="start.ru" group-title="Кино",START World HD
 https://okkotv-live.cdnvideo.ru/channel/START_World_HD.m3u8
-#EXTINF:-1 tvg-name="Первый канал (SMIL)" tvg-id="1tv.ru",Первый канал (SMIL-обёртка)
+#EXTINF:-1 tvg-name="Sony Sci-Fi" tvg-id="sonyscifi.ru" group-title="Кино",Sony Sci-Fi
+https://okkotv-live.cdnvideo.ru/channel/Sony_SciFi.m3u8
+#EXTINF:-1 tvg-name=".black" tvg-id="sonyturbo.ru" group-title="Кино",.black
+https://okkotv-live.cdnvideo.ru/channel/Sony_Turbo.m3u8
+#EXTINF:-1 tvg-name=".red" tvg-id="sonyet.ru" group-title="Кино",.red
+https://okkotv-live.cdnvideo.ru/channel/Sony_ET.m3u8
+
+# --- СПЕЦИАЛЬНЫЕ ---
+#EXTINF:-1 tvg-name="Известия HD" tvg-id="iz.ru" group-title="Новости",Известия HD
+https://okkotv-live.cdnvideo.ru/channel/Izvestiya_HD_2.m3u8
+#EXTINF:-1 tvg-name="СПАС" tvg-id="spastv.ru" group-title="Нишевые",СПАС
+https://okkotv-live.cdnvideo.ru/channel/Spas.m3u8
+#EXTINF:-1 tvg-name="Disney" tvg-id="disney.ru" group-title="Детские",Disney
+https://okkotv-live.cdnvideo.ru/channel/Disney.m3u8
+
+# --- SMIL-ОБЁРТКА (альтернатива) ---
+#EXTINF:-1 tvg-name="Первый канал (SMIL)" tvg-id="1tv.ru" group-title="Федеральные",Первый канал (SMIL-обёртка)
 https://live-okkotv.cdnvideo.ru/okkotv/1tv.smil/playlist.m3u8
