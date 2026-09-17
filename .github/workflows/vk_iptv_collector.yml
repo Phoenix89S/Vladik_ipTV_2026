@@ -1,0 +1,174 @@
+name: VK IPTV M3U Collector
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # Каждый день в 03:00 UTC
+    - cron: "0 3 * * *"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: vk-iptv-collector
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ============================================================
+      # 1. Забираем репозиторий
+      # ============================================================
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      # ============================================================
+      # 2. Python
+      # ============================================================
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ============================================================
+      # 3. Зависимости
+      # ============================================================
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      # ============================================================
+      # 4. Скачать АКТУАЛЬНЫЙ код коллектора из raw GitHub
+      # ============================================================
+
+      - name: Download collector
+        run: |
+          curl -fL \
+            --retry 5 \
+            --retry-delay 3 \
+            --connect-timeout 20 \
+            --max-time 120 \
+            "https://raw.githubusercontent.com/Phoenix89S/Vladik_ipTV_2026/main/VK_IPTV_M3U_COLLECTOR.py" \
+            -o VK_IPTV_M3U_COLLECTOR.py
+
+          test -s VK_IPTV_M3U_COLLECTOR.py
+
+          echo "Collector downloaded:"
+          ls -lh VK_IPTV_M3U_COLLECTOR.py
+
+      # ============================================================
+      # 5. Запуск коллектора
+      # ============================================================
+
+      - name: Run VK IPTV collector
+        run: |
+          python VK_IPTV_M3U_COLLECTOR.py \
+            --url "https://m.vk.ru/club228871429" \
+            --output "vk_iptv_output" \
+            --max-playlist-depth 2 \
+            --verbose
+
+      # ============================================================
+      # 6. Показываем результат
+      # ============================================================
+
+      - name: Show collected files
+        if: always()
+        run: |
+          echo "=============================================="
+          echo "COLLECTOR OUTPUT"
+          echo "=============================================="
+
+          if [ -d "vk_iptv_output" ]; then
+            find vk_iptv_output -type f -printf '%p %k KB\n' | sort
+          else
+            echo "vk_iptv_output directory does not exist"
+          fi
+
+      # ============================================================
+      # 7. Сохраняем результат как ARTIFACT
+      #
+      # upload-artifact НЕ удаляет артефакты предыдущих запусков.
+      # Каждый workflow run получает собственный artifact.
+      # ============================================================
+
+      - name: Upload collector result as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vk-iptv-result-${{ github.run_number }}
+          path: |
+            vk_iptv_output/
+            VK_IPTV_M3U_COLLECTOR.py
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 6
+
+      # ============================================================
+      # 8. Подготовка каталога в репозитории
+      #
+      # ВАЖНО:
+      # Не делаем rm -rf репозитория.
+      # Не удаляем старые файлы.
+      # Обновляются/добавляются только файлы результата.
+      # ============================================================
+
+      - name: Prepare repository output
+        run: |
+          mkdir -p data/vk_iptv
+
+          cp -f vk_iptv_output/combined.m3u \
+            data/vk_iptv/combined.m3u
+
+          cp -f vk_iptv_output/records.jsonl \
+            data/vk_iptv/records.jsonl
+
+          cp -f vk_iptv_output/posts_urls.txt \
+            data/vk_iptv/posts_urls.txt
+
+          cp -f vk_iptv_output/playlists.txt \
+            data/vk_iptv/playlists.txt
+
+          cp -f vk_iptv_output/stats.json \
+            data/vk_iptv/stats.json
+
+          # errors.log переносим только если он существует
+          if [ -f vk_iptv_output/errors.log ]; then
+            cp -f vk_iptv_output/errors.log \
+              data/vk_iptv/errors.log
+          fi
+
+          echo "Repository output:"
+          find data/vk_iptv -maxdepth 1 -type f -print | sort
+
+      # ============================================================
+      # 9. Коммит и PUSH
+      # ============================================================
+
+      - name: Commit and push results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/vk_iptv/
+
+          if git diff --cached --quiet; then
+            echo "No repository changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Update VK IPTV collector results"
+
+          git push origin HEAD:main
