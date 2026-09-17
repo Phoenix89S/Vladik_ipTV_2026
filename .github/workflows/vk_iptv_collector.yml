@@ -80,7 +80,7 @@ jobs:
           set -e
 
           python VK_IPTV_M3U_COLLECTOR.py \
-            --url "https://m.vk.ru/club228871429" \
+            --url "https://vk.ru/club228871429" \
             --output "vk_iptv_output" \
             --max-playlist-depth 2 \
             --verbose
