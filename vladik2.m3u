@@ -119,3 +119,144 @@ https://okkotv-live.cdnvideo.ru/channel/Disney.m3u8
 # --- SMIL-ОБЁРТКА (альтернатива) ---
 #EXTINF:-1 tvg-name="Первый канал (SMIL)" tvg-id="1tv.ru" group-title="Федеральные",Первый канал (SMIL-обёртка)
 https://live-okkotv.cdnvideo.ru/okkotv/1tv.smil/playlist.m3u8
+
+
+
+#EXTINF:-1,8 канал (Красноярский край)
+http://serv25.vintera.tv:8081/8tv/8tv/playlist.m3u8
+
+#EXTINF:-1,ПРНК HD
+http://serv25.vintera.tv:8081/1pnk/prnk/playlist.m3u8
+
+#EXTINF:-1,Калейдоскоп ТВ
+http://serv25.vintera.tv:8081/kaleidoscop/kaleidoscop_sd/playlist.m3u8
+
+#EXTINF:-1,Первый канал (SD)
+http://serv25.vintera.tv:8081/restream/1canal_sd/playlist.m3u8
+
+#EXTINF:-1,Первый канал (500 кб/с)
+http://serv25.vintera.tv:8081/500/1canal-500az/playlist.m3u8
+
+#EXTINF:-1,Россия 1 (500 кб/с)
+http://serv25.vintera.tv:8081/500/rus1-500df/playlist.m3u8
+
+#EXTINF:-1,Россия 24 (500 кб/с)
+http://serv25.vintera.tv:8081/500/rus24-500w/playlist.m3u8
+
+#EXTINF:-1,НТВ
+http://serv25.vintera.tv:8081/restream/ntv09/playlist.m3u8
+
+#EXTINF:-1,НТВ (500 кб/с)
+http://serv25.vintera.tv:8081/500/ntv-500q/playlist.m3u8
+
+#EXTINF:-1,ТВЦ
+http://serv25.vintera.tv:8081/restream/tvc/playlist.m3u8
+
+#EXTINF:-1,Пятый канал
+http://serv25.vintera.tv:8081/restream/5ch/playlist.m3u8
+
+#EXTINF:-1,СТС
+http://serv25.vintera.tv:8081/restream/sts_er/playlist.m3u8
+
+#EXTINF:-1,Ю
+http://serv25.vintera.tv:8081/restream/u-500/playlist.m3u8
+
+#EXTINF:-1,Россия К
+http://serv25.vintera.tv:8081/restream/rusk/playlist.m3u8
+
+#EXTINF:-1,Союз
+http://serv25.vintera.tv:8081/restream/soyuz/playlist.m3u8
+
+#EXTINF:-1,Москва 24
+http://serv25.vintera.tv:8081/restream/moskva24/playlist.m3u8
+
+#EXTINF:-1,ТНТ Music
+http://serv25.vintera.tv:8081/restream/tntmusic/playlist.m3u8
+
+#EXTINF:-1,Radio Monte Carlo TV
+http://serv25.vintera.tv:8081/restream/RadioMonteCarlo/playlist.m3u8
+
+#EXTINF:-1,Классика Кино
+http://serv25.vintera.tv:8081/klasskino/k_kino/playlist.m3u8
+
+#EXTINF:-1,Неизвестная планета
+http://serv25.vintera.tv:8081/neplaneta/np/playlist.m3u8
+
+#EXTINF:-1,Липецкое время
+http://serv25.vintera.tv:8081/liptime/liptime/playlist.m3u8
+
+#EXTINF:-1,Новое Телевидение
+http://serv25.vintera.tv:8081/novoetv/nov_tv/playlist.m3u8
+
+#EXTINF:-1,Вместе РФ
+http://serv25.vintera.tv:8081/vmesterf/vmesterf/playlist.m3u8
+
+#EXTINF:-1,GLN 24 (Геленджик)
+http://serv25.vintera.tv:8081/gelendzhik/stream_1/playlist.m3u8
+
+#EXTINF:-1,Арис 24 HD (Восток 24)
+http://serv25.vintera.tv:8081/test/aris/playlist.m3u8
+
+#EXTINF:-1,Беларусь 24
+http://serv25.vintera.tv:8081/temp/b24/playlist.m3u8
+
+#EXTINF:-1,Катунь 24
+http://serv25.vintera.tv:8081/restream/katun24/playlist.m3u8
+
+#EXTINF:-1,Удмуртия
+http://serv25.vintera.tv:8081/restream/udmurtia/playlist.m3u8
+
+#EXTINF:-1,Ноябрьск 24
+http://serv25.vintera.tv:8081/restream/noyabrsk24/playlist.m3u8
+
+#EXTINF:-1,Время Арктики
+http://serv25.vintera.tv:8081/restream/arctica24/playlist.m3u8
+
+#EXTINF:-1,Витрина ТВ
+http://serv25.vintera.tv:8081/restream/vitrina_tv/playlist.m3u8
+
+#EXTINF:-1,Дорама
+http://serv25.vintera.tv:8081/restream/dorama/playlist.m3u8
+
+#EXTINF:-1,Синергия ТВ
+http://serv25.vintera.tv:8081/synergytv/synergytv_hq/playlist.m3u8
+
+#EXTINF:-1,Три Ангела
+http://serv25.vintera.tv:8081/human/SD.m3u8
+
+#EXTINF:-1,Русский Мьюзикбокс
+http://serv25.vintera.tv:8081/test/rusmusbox/playlist.m3u8
+
+#EXTINF:-1,Еврокино
+http://serv25.vintera.tv:8081/AXs0rHDOwAjgHAyI/eurokino_aa/playlist.m3u8
+
+#EXTINF:-1,Совершенно секретно
+http://serv23.vintera.tv:8081/secret/sovsec1/playlist.m3u8
+
+#EXTINF:-1,Звезда
+http://serv23.vintera.tv:8081/restream/zvezda/playlist.m3u8
+
+#EXTINF:-1,Че (500 кб/с)
+http://serv23.vintera.tv:8081/restream/perets_500we/playlist.m3u8
+
+#EXTINF:-1,Первый канал (500, serv23)
+http://serv23.vintera.tv:8081/restream/1-500_io/playlist.m3u8
+
+#EXTINF:-1,2x2 (500)
+http://serv23.vintera.tv:8081/500/2x2_500/playlist.m3u8
+
+#EXTINF:-1,Калейдоскоп ТВ (serv24)
+http://serv24.vintera.tv:8081/kaledoskop/kaledoskop/playlist.m3u8
+
+#EXTINF:-1,DOT Dance
+http://serv24.vintera.tv:8081/dotdance/dotdance.stream/playlist.m3u8
+
+#EXTINF:-1,БМ24
+http://serv24.vintera.tv:8081/bmtv/bm24/playlist.m3u8
+
+#EXTINF:-1,ЮТВ
+http://serv24.vintera.tv:8081/utv/Stream/playlist.m3u8
+
+#EXTINF:-1,Ветта 24 (Пермь)
+http://serv24.vintera.tv:8081/vetta/vetta_off
+
