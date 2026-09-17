@@ -22,7 +22,7 @@ VK IPTV / M3U COLLECTOR
 - Скрипт не обходит авторизацию, закрытые посты или ограничения доступа.
 
 Зависимости:
-    pip install requests
+    pip install requests beautifulsoup4
 
 Запуск:
     python vk_iptv_collector.py
@@ -59,6 +59,7 @@ from urllib.parse import (
 )
 
 import requests
+from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -482,324 +483,202 @@ def parse_m3u(
 
 
 # ============================================================================
-# HTML / VK PAGE PARSER
+# VK POST / GROUP CRAWLER
 # ============================================================================
 
-def strip_html_tags(text: str) -> str:
-    text = re.sub(r"(?is)<script\b.*?</script>", " ", text)
-    text = re.sub(r"(?is)<style\b.*?</style>", " ", text)
-    text = re.sub(r"(?is)<noscript\b.*?</noscript>", " ", text)
-    text = re.sub(r"(?s)<[^>]+>", " ", text)
-    return html.unescape(text)
+@dataclass
+class Post:
+    post_id: str
+    url: str
+    text: str
+    html_fragment: str = ""
 
 
-def extract_post_contexts(page_html: str, page_url: str) -> list[tuple[str, str]]:
-    """
-    Пытается найти отдельные фрагменты, похожие на посты.
-
-    VK меняет HTML довольно часто, поэтому здесь намеренно несколько
-    эвристик. Если отдельные посты выделить невозможно, возвращается
-    один общий фрагмент страницы.
-
-    Возвращает:
-        [(post_url, post_text_or_html), ...]
-    """
-
-    contexts: list[tuple[str, str]] = []
-
-    # 1. Частые data-* идентификаторы постов.
-    patterns = [
-        re.compile(
-            r"""(?is)
-            <[^>]+
-            data-post-id\s*=\s*["']([^"']+)["']
-            [^>]*>
-            (.*?)
-            </(?:div|article|section)>
-            """,
-        ),
-        re.compile(
-            r"""(?is)
-            <[^>]+
-            data-post-id\s*=\s*["']([^"']+)["']
-            [^>]*>
-            (.*?)
-            (?=<[^>]+data-post-id\s*=|$)
-            """,
-        ),
-    ]
-
-    for pattern in patterns:
-        try:
-            for match in pattern.finditer(page_html):
-                post_id = match.group(1)
-                body = match.group(2)
-
-                if body and URL_RE.search(body):
-                    post_url = urljoin(
-                        page_url,
-                        f"/wall{post_id}"
-                        if post_id.startswith("-")
-                        else f"/wall{post_id}",
-                    )
-                    contexts.append((post_url, body))
-        except Exception:
-            pass
-
-    # 2. Если эвристики не сработали — вся страница.
-    if not contexts:
-        contexts.append((page_url, page_html))
-
-    return contexts
+POST_ID_RE = re.compile(r"(?:wall|w=wall)(-?\d+_\d+)", re.I)
 
 
-def collect_page_urls(
-    page_html: str,
-    page_url: str,
-) -> tuple[list[tuple[str, str]], list[str]]:
-    """
-    Возвращает:
-        post contexts
-        все найденные URL на странице
-
-    URL не дедуплицируются.
-    """
-
-    contexts = extract_post_contexts(page_html, page_url)
-
-    all_urls: list[str] = []
-
-    for _, body in contexts:
-        all_urls.extend(extract_urls(body, page_url))
-
-    # Если отдельные посты не дали URL, пробуем всю страницу.
-    if not all_urls:
-        all_urls.extend(extract_urls(page_html, page_url))
-
-    return contexts, all_urls
+def html_to_text(fragment: str) -> str:
+    soup = BeautifulSoup(fragment, "html.parser")
+    for tag in soup(["script", "style", "noscript"]):
+        tag.decompose()
+    return soup.get_text("\n", strip=True)
 
 
-# ============================================================================
-# DIRECT RECORD CREATION
-# ============================================================================
+def post_id_from(value: str) -> str:
+    m = POST_ID_RE.search(value or "")
+    return m.group(1) if m else ""
 
-def create_direct_records(
-    page_url: str,
-    post_url: str,
-    body: str,
-) -> tuple[list[Record], list[str]]:
-    """
-    Обрабатывает URL непосредственно в посте.
 
-    ВАЖНО:
-    URL плейлиста одновременно сохраняется как найденный URL.
-    Затем этот же URL передаётся в очередь загрузки плейлистов.
+def extract_posts(page_html: str, page_url: str) -> list[Post]:
+    soup = BeautifulSoup(page_html, "html.parser")
+    found: list[Post] = []
 
-    То есть ссылка НЕ теряется.
-    """
+    # VK versions differ, so use several independent ways of finding posts.
+    nodes = soup.find_all(attrs={"data-post-id": True})
+    for node in nodes:
+        pid = str(node.get("data-post-id") or "").strip()
+        if not pid:
+            continue
+        fragment = str(node)
+        text = html_to_text(fragment)
+        found.append(Post(pid, urljoin(page_url, f"/wall{pid}"), text, fragment))
 
-    urls = extract_urls(body, page_url)
+    # Look for containers containing a wall-id and IPTV URL.
+    if not found:
+        for node in soup.find_all(["article", "section", "div"]):
+            fragment = str(node)
+            if not URL_RE.search(fragment):
+                continue
+            pid = post_id_from(fragment)
+            if not pid:
+                continue
+            text = html_to_text(fragment)
+            if text:
+                found.append(Post(pid, urljoin(page_url, f"/wall{pid}"), text, fragment))
 
-    records: list[Record] = []
-    playlist_urls: list[str] = []
+    # Fallback: wall links and their nearest useful parent.
+    if not found:
+        for a in soup.find_all("a", href=True):
+            href = str(a.get("href") or "")
+            pid = post_id_from(href)
+            if not pid:
+                continue
+            parent = a
+            for _ in range(7):
+                if parent.parent is None:
+                    break
+                parent = parent.parent
+                fragment = str(parent)
+                if URL_RE.search(fragment):
+                    break
+            text = html_to_text(str(parent))
+            if text:
+                found.append(Post(pid, urljoin(page_url, f"/wall{pid}"), text, str(parent)))
 
-    for url in urls:
-        playlist = looks_like_playlist_url(url)
+    # Last resort: if VK returned a page containing URLs but no identifiable
+    # post containers, treat the page as one public source block. This still
+    # collects all URLs instead of silently producing an empty playlist.
+    if not found and URL_RE.search(page_html):
+        found.append(Post("page", page_url, html_to_text(page_html), page_html))
 
-        record = Record(
-            sequence=0,
-            name="",
-            url=url,
-            source_type="direct_playlist" if playlist else "direct",
-            source_page=page_url,
-            source_post=post_url,
-            playlist_url="",
-            playlist_depth=0,
-            raw_text=url,
-        )
+    # Technical DOM duplicates only. Stream/channel deduplication is NEVER done.
+    result=[]
+    seen=set()
+    for post in found:
+        key=(post.post_id, post.url, post.text[:500])
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(post)
+    return result
 
-        records.append(record)
 
-        if playlist:
-            playlist_urls.append(url)
+def infer_post_name(text: str, url: str) -> str:
+    lines=[re.sub(r"\s+", " ", x).strip() for x in text.splitlines()]
+    lines=[x for x in lines if x]
+    for i,line in enumerate(lines):
+        if url in line or clean_url(url) in line:
+            if i>0 and not is_http_url(lines[i-1]):
+                return lines[i-1][:300]
+    marker=re.compile(r"(?i)^(?:канал|название|channel|tv)\s*[:\-]\s*(.+)$")
+    for line in lines:
+        m=marker.match(line)
+        if m:
+            return m.group(1).strip()[:300]
+    for line in lines:
+        if not is_http_url(line) and not line.startswith("#") and len(line)>1:
+            return line[:300]
+    return ""
 
-    return records, playlist_urls
+
+def post_urls(post: Post, page_url: str) -> list[str]:
+    urls=extract_urls(post.html_fragment or post.text, page_url)
+    if not urls:
+        urls=extract_urls(post.text, page_url)
+    # Do not deduplicate: every occurrence remains an occurrence.
+    return [u for u in urls if u != post.url]
+
+
+def pagination_links(page_html: str, page_url: str) -> list[str]:
+    soup=BeautifulSoup(page_html, "html.parser")
+    out=[]
+    for a in soup.find_all("a", href=True):
+        href=str(a.get("href") or "")
+        text=html_to_text(str(a)).lower()
+        absolute=urljoin(page_url, href)
+        if not is_http_url(absolute):
+            continue
+        q=urlparse(absolute).query.lower()
+        if any(x in q for x in ("offset=","page=","start_from=","cursor=")) or any(x in text for x in ("далее","ещё","еще","next","more")):
+            out.append(absolute)
+    return out
+
+
+def offset_url(base: str, offset: int) -> str:
+    sep="&" if "?" in base else "?"
+    return f"{base}{sep}offset={offset}"
 
 
 # ============================================================================
-# DOWNLOAD PLAYLIST
+# PLAYLIST DOWNLOAD / PARSE
 # ============================================================================
 
-def download_text(
-    session: requests.Session,
-    url: str,
-    timeout: tuple[int, int] = PLAYLIST_TIMEOUT,
-) -> tuple[Optional[str], Optional[str]]:
-    """
-    Возвращает:
-        (text, error)
-
-    Поток читается частями, чтобы не загрузить бесконечно большой ответ.
-    """
-
+def download_playlist(session: requests.Session, url: str) -> tuple[Optional[str], str, Optional[str]]:
     try:
-        response = session.get(
-            url,
-            timeout=timeout,
-            allow_redirects=True,
-            stream=True,
-        )
-
-        if response.status_code >= 400:
-            return None, f"HTTP {response.status_code}"
-
-        chunks: list[bytes] = []
-        total = 0
-
-        for chunk in response.iter_content(chunk_size=64 * 1024):
+        r=session.get(url, timeout=PLAYLIST_TIMEOUT, allow_redirects=True, stream=True)
+        if r.status_code >= 400:
+            return None, "", f"HTTP {r.status_code}"
+        ctype=r.headers.get("Content-Type", "")
+        chunks=[]; total=0
+        for chunk in r.iter_content(64*1024):
             if not chunk:
                 continue
-
             total += len(chunk)
-
             if total > MAX_DOWNLOAD_BYTES:
-                return None, (
-                    f"download exceeds MAX_DOWNLOAD_BYTES="
-                    f"{MAX_DOWNLOAD_BYTES}"
-                )
-
+                return None, ctype, f"response exceeds {MAX_DOWNLOAD_BYTES} bytes"
             chunks.append(chunk)
-
-        raw = b"".join(chunks)
-
-        # M3U почти всегда UTF-8, но встречается cp1251.
-        for encoding in ("utf-8-sig", "utf-8", "cp1251", "latin-1"):
+        raw=b"".join(chunks)
+        for enc in ("utf-8-sig","utf-8","cp1251","latin-1"):
             try:
-                return raw.decode(encoding), None
+                return raw.decode(enc), ctype, None
             except UnicodeDecodeError:
-                continue
-
-        return raw.decode("utf-8", errors="replace"), None
-
-    except requests.RequestException as exc:
-        return None, f"{type(exc).__name__}: {exc}"
-
+                pass
+        return raw.decode("utf-8", errors="replace"), ctype, None
     except Exception as exc:
-        return None, f"{type(exc).__name__}: {exc}"
+        return None, "", f"{type(exc).__name__}: {exc}"
 
 
-def looks_like_m3u_text(text: str) -> bool:
-    head = text[:5000].lstrip("\ufeff \t\r\n")
-    return (
-        head.startswith("#EXTM3U")
-        or "#EXTINF:" in text[:100000]
-        or "#EXTINF " in text[:100000]
-    )
+def is_m3u_content(text: str, content_type: str) -> bool:
+    sample=text[:200000].lstrip("\ufeff \t\r\n")
+    ct=content_type.lower()
+    return (sample.startswith("#EXTM3U") or "#EXTINF:" in sample or
+            "#EXTINF " in sample or "mpegurl" in ct or "x-mpegurl" in ct)
 
 
-# ============================================================================
-# OUTPUT
-# ============================================================================
-
-def assign_sequences(records: list[Record]) -> None:
-    for index, record in enumerate(records, start=1):
-        record.sequence = index
-
-
-def write_jsonl(records: list[Record], path: Path) -> None:
-    with path.open("w", encoding="utf-8") as fh:
-        for record in records:
-            fh.write(
-                json.dumps(
-                    asdict(record),
-                    ensure_ascii=False,
-                )
-                + "\n"
-            )
-
-
-def build_extinf(record: Record) -> str:
-    """
-    Стараемся сохранить исходный EXTINF максимально буквально.
-
-    Для прямых URL, где EXTINF отсутствует, создаём минимальный EXTINF.
-    """
-
-    if record.extinf:
-        return record.extinf
-
-    name = record.name or "Unknown"
-
-    return f"#EXTINF:-1,{name}"
-
-
-def write_combined_m3u(
-    records: list[Record],
-    path: Path,
-) -> None:
-    with path.open("w", encoding="utf-8", newline="\n") as fh:
-        fh.write("#EXTM3U\n")
-
-        for record in records:
-            fh.write(build_extinf(record))
-            fh.write("\n")
-            fh.write(record.url)
-            fh.write("\n")
-
-
-def write_posts_urls(
-    records: list[Record],
-    path: Path,
-) -> None:
-    with path.open("w", encoding="utf-8") as fh:
-        for record in records:
-            if record.source_type.startswith("direct"):
-                fh.write(
-                    f"{record.name or '-'}\t"
-                    f"{record.url}\t"
-                    f"{record.source_post or record.source_page}\n"
-                )
-
-
-def write_playlists(
-    playlist_occurrences: list[dict],
-    path: Path,
-) -> None:
-    with path.open("w", encoding="utf-8") as fh:
-        for item in playlist_occurrences:
-            fh.write(
-                f"{item['url']}\t"
-                f"depth={item['depth']}\t"
-                f"source={item['source']}\n"
-            )
-
-
-def write_stats(
-    stats: CollectorStats,
-    records: list[Record],
-    output_dir: Path,
-) -> None:
-    data = asdict(stats)
-
-    data["records_by_source_type"] = {}
-
-    for record in records:
-        key = record.source_type
-        data["records_by_source_type"][key] = (
-            data["records_by_source_type"].get(key, 0) + 1
-        )
-
-    data["note"] = (
-        "NO DEDUPLICATION: repeated URLs/channels are intentionally retained."
-    )
-
-    with (output_dir / "stats.json").open("w", encoding="utf-8") as fh:
-        json.dump(
-            data,
-            fh,
-            ensure_ascii=False,
-            indent=2,
-        )
+def parse_m3u(text: str, playlist_url: str, source_page: str, source_post: str, depth: int, post_text: str):
+    lines=text.replace("\r\n","\n").replace("\r","\n").split("\n")
+    records=[]; nested=[]; extinf=""; attrs={}
+    for raw in lines:
+        line=raw.strip()
+        if not line:
+            continue
+        if line.upper().startswith("#EXTINF"):
+            extinf=line; attrs=parse_extinf_attributes(line); continue
+        if line.startswith("#") or not is_http_url(line):
+            continue
+        url=clean_url(line)
+        name=attrs.get("tvg-name") or extinf_display_name(extinf) or ""
+        records.append(Record(
+            sequence=0, name=name, url=url, source_type="playlist_record",
+            source_page=source_page, source_post=source_post,
+            playlist_url=playlist_url, playlist_depth=depth,
+            extinf=extinf, tvg_id=attrs.get("tvg-id",""),
+            tvg_name=attrs.get("tvg-name",""), tvg_logo=attrs.get("tvg-logo",""),
+            group_title=attrs.get("group-title",""), raw_text=post_text))
+        if looks_like_playlist_url(url):
+            nested.append(url)
+        extinf=""; attrs={}
+    return records,nested
 
 
 # ============================================================================
@@ -807,331 +686,140 @@ def write_stats(
 # ============================================================================
 
 class Collector:
-    def __init__(
-        self,
-        page_url: str,
-        output_dir: Path,
-        max_playlist_depth: int = MAX_PLAYLIST_DEPTH,
-        max_pages: int = 1,
-    ) -> None:
-        self.page_url = page_url
-        self.output_dir = output_dir
-        self.max_playlist_depth = max_playlist_depth
-        self.max_pages = max_pages
+    def __init__(self, page_url: str, output_dir: Path, max_pages: int=1000, max_playlist_depth: int=3):
+        self.page_url=page_url
+        self.output_dir=output_dir
+        self.max_pages=max_pages
+        self.max_playlist_depth=max_playlist_depth
+        self.session=build_session()
+        self.stats=CollectorStats()
+        self.records=[]
+        self.posts=[]
+        self.playlist_events=[]
+        self.playlist_occurrences=[]
+        self.active_playlist_chain=[]
 
-        self.session = build_session()
-        self.stats = CollectorStats()
-
-        self.records: list[Record] = []
-
-        # Это НЕ дедупликация результата.
-        # Используется только для предотвращения бесконечной рекурсии
-        # playlist -> playlist -> ...
-        self.playlist_occurrences: list[dict] = []
-
-        # URL, уже поставленные в очередь для текущего дерева.
-        # Повторные находки всё равно записываются в playlist_occurrences
-        # и direct records.
-        self._active_playlist_chain: list[str] = []
-
-    def fetch_page(self, url: str) -> Optional[str]:
+    def fetch_page(self,url):
         self.stats.pages_requested += 1
-
         try:
-            response = self.session.get(
-                url,
-                timeout=REQUEST_TIMEOUT,
-                allow_redirects=True,
-            )
-
-            if response.status_code >= 400:
-                self.stats.errors += 1
-                LOG.error(
-                    "VK PAGE HTTP %s: %s",
-                    response.status_code,
-                    url,
-                )
-                return None
-
-            content = response.content
-
-            if len(content) > MAX_HTML_BYTES:
-                self.stats.errors += 1
-                LOG.error(
-                    "VK PAGE TOO LARGE: %s bytes: %s",
-                    len(content),
-                    url,
-                )
-                return None
-
-            response.encoding = response.encoding or "utf-8"
-
+            r=self.session.get(url,timeout=REQUEST_TIMEOUT,allow_redirects=True)
+            if r.status_code>=400:
+                self.stats.errors+=1; LOG.error("PAGE HTTP %s: %s",r.status_code,url); return None
+            if len(r.content)>MAX_HTML_BYTES:
+                self.stats.errors+=1; LOG.error("PAGE TOO LARGE: %s",url); return None
+            r.encoding=r.encoding or "utf-8"
             self.stats.pages_ok += 1
-
-            return response.text
-
+            return r.text
         except Exception as exc:
-            self.stats.errors += 1
-            LOG.error(
-                "VK PAGE ERROR: %s | %s",
-                url,
-                exc,
-            )
-            return None
+            self.stats.errors+=1; LOG.error("PAGE ERROR: %s | %s",url,exc); return None
 
-    def collect_vk_page(self) -> None:
-        """
-        Загружает VK-страницу.
-
-        max_pages оставлен как расширяемая точка.
-        Для m.vk.ru надёжнее начинать с одной публичной страницы,
-        потому что VK может менять схему пагинации.
-        """
-
-        page_urls: list[str] = [self.page_url]
-
-        # Осторожная поддержка ?offset=N.
-        # Используется только если max_pages > 1.
-        if self.max_pages > 1:
-            separator = "&" if "?" in self.page_url else "?"
-
-            for page_index in range(1, self.max_pages):
-                offset = page_index * 20
-                page_urls.append(
-                    f"{self.page_url}{separator}offset={offset}"
-                )
-
-        for index, current_page in enumerate(page_urls):
-            if index:
-                time.sleep(VK_DELAY)
-
-            LOG.info(
-                "VK PAGE %d/%d: %s",
-                index + 1,
-                len(page_urls),
-                current_page,
-            )
-
-            page_html = self.fetch_page(current_page)
-
-            if not page_html:
-                continue
-
-            contexts, page_urls_found = collect_page_urls(
-                page_html,
-                current_page,
-            )
-
-            self.stats.urls_found_in_pages += len(page_urls_found)
-
-            # Основной вариант: разбираем контекст каждого поста.
-            #
-            # Если HTML не позволяет выделить посты, contexts содержит
-            # страницу целиком.
-            seen_context_objects = set()
-
-            for post_url, body in contexts:
-                marker = (post_url, id(body))
-
-                if marker in seen_context_objects:
-                    continue
-
-                seen_context_objects.add(marker)
-
-                direct_records, playlist_urls = create_direct_records(
-                    current_page,
-                    post_url,
-                    body,
-                )
-
-                self.records.extend(direct_records)
-
-                self.stats.direct_records += len(direct_records)
-                self.stats.playlist_urls_found += len(playlist_urls)
-
-                for playlist_url in playlist_urls:
-                    self.collect_playlist(
-                        playlist_url,
-                        source_page=current_page,
-                        source_post=post_url,
-                        depth=0,
-                    )
-
-    def collect_playlist(
-        self,
-        playlist_url: str,
-        source_page: str,
-        source_post: str,
-        depth: int,
-    ) -> None:
-        """
-        Скачивает и разбирает один playlist.
-
-        ВАЖНО:
-        Каждый вызов фиксируется как отдельное обнаружение.
-        Мы НЕ удаляем повторяющиеся URL из итогового результата.
-
-        Для предотвращения бесконечной рекурсии:
-        если URL уже находится в текущей цепочке,
-        повторно по нему не переходим.
-        """
-
-        playlist_url = clean_url(playlist_url)
-
-        occurrence = {
-            "url": playlist_url,
-            "depth": depth,
-            "source": source_post or source_page,
-        }
-
-        self.playlist_occurrences.append(occurrence)
-
-        if depth > self.max_playlist_depth:
-            LOG.warning(
-                "MAX PLAYLIST DEPTH reached: depth=%s url=%s",
-                depth,
-                playlist_url,
-            )
+    def collect_playlist(self,url,source_post,depth,post_text):
+        url=clean_url(url)
+        self.playlist_occurrences.append({"url":url,"depth":depth,"source_post":source_post})
+        if depth>self.max_playlist_depth:
+            self.playlist_events.append({"url":url,"depth":depth,"status":"max_depth","records":0})
             return
-
-        if playlist_url in self._active_playlist_chain:
-            LOG.warning(
-                "PLAYLIST CYCLE detected, not descending further: %s",
-                playlist_url,
-            )
+        if url in self.active_playlist_chain:
+            self.playlist_events.append({"url":url,"depth":depth,"status":"cycle","records":0})
             return
-
-        self._active_playlist_chain.append(playlist_url)
-
+        self.active_playlist_chain.append(url)
         try:
-            self.stats.playlists_requested += 1
-
-            LOG.info(
-                "DOWNLOAD PLAYLIST depth=%d: %s",
-                depth,
-                playlist_url,
-            )
-
-            text, error = download_text(
-                self.session,
-                playlist_url,
-            )
-
+            LOG.info("DOWNLOAD PLAYLIST depth=%d: %s",depth,url)
+            text,ctype,error=download_playlist(self.session,url)
             if error:
-                self.stats.playlists_failed += 1
-                self.stats.errors += 1
-
-                LOG.error(
-                    "PLAYLIST ERROR: %s | %s",
-                    playlist_url,
-                    error,
-                )
-
+                self.stats.playlists_failed+=1; self.stats.errors+=1
+                LOG.error("PLAYLIST ERROR: %s | %s",url,error)
+                self.playlist_events.append({"url":url,"depth":depth,"status":"download_error","records":0,"error":error})
                 return
-
-            self.stats.playlists_ok += 1
-
-            if not text:
+            self.stats.playlists_requested+=1
+            if not is_m3u_content(text or "",ctype):
+                LOG.warning("NOT M3U CONTENT: %s | %s",url,ctype)
+                self.playlist_events.append({"url":url,"depth":depth,"status":"not_m3u","records":0})
+                # Critically: a failed playlist is NOT emitted as a fake channel.
                 return
-
-            if not looks_like_m3u_text(text):
-                # Это может быть обычный HLS/media response.
-                # Он уже сохранён как direct_playlist в records.
-                LOG.warning(
-                    "URL did not return recognizable M3U: %s",
-                    playlist_url,
-                )
-                return
-
-            records, nested_playlists = parse_m3u(
-                text=text,
-                playlist_url=playlist_url,
-                source_page=source_page,
-                depth=depth,
-            )
-
-            self.records.extend(records)
+            self.stats.playlists_ok+=1
+            records,nested=parse_m3u(text,url,self.page_url,source_post,depth,post_text)
             self.stats.playlist_records += len(records)
-
-            for nested_url in nested_playlists:
+            self.records.extend(records)
+            self.playlist_events.append({"url":url,"depth":depth,"status":"parsed","records":len(records)})
+            for nurl in nested:
                 self.stats.nested_playlist_urls += 1
-
-                self.collect_playlist(
-                    nested_url,
-                    source_page=source_page,
-                    source_post=source_post,
-                    depth=depth + 1,
-                )
-
+                self.collect_playlist(nurl,source_post,depth+1,post_text)
         finally:
-            self._active_playlist_chain.pop()
+            self.active_playlist_chain.pop()
 
-    def save(self) -> None:
-        assign_sequences(self.records)
+    def process_post(self,post: Post):
+        self.stats.posts_processed += 1
+        urls=post_urls(post,self.page_url)
+        for url in urls:
+            if looks_like_playlist_url(url):
+                self.stats.playlist_urls_found += 1
+                self.collect_playlist(url,post.url,0,post.text)
+            else:
+                name=infer_post_name(post.text,url)
+                self.records.append(Record(
+                    sequence=0,name=name,url=url,source_type="direct_post",
+                    source_page=self.page_url,source_post=post.url,raw_text=post.text))
+                self.stats.direct_records += 1
 
-        self.stats.total_records = len(self.records)
+    def crawl_group(self):
+        queue=[self.page_url]; queued={self.page_url}; processed=set(); empty=0
+        LOG.info("FULL GROUP CRAWL: %s",self.page_url)
+        while queue and len(processed)<self.max_pages:
+            current=queue.pop(0)
+            if current in processed: continue
+            processed.add(current)
+            if len(processed)>1: time.sleep(VK_DELAY)
+            LOG.info("GROUP PAGE %d/%d: %s",len(processed),self.max_pages,current)
+            page=self.fetch_page(current)
+            if not page: continue
+            found=extract_posts(page,current)
+            before=len(self.posts)
+            known={(p.post_id,p.url,p.text[:500]) for p in self.posts}
+            for post in found:
+                key=(post.post_id,post.url,post.text[:500])
+                if key in known: continue
+                known.add(key); self.posts.append(post); self.stats.posts_found+=1
+                self.process_post(post)
+            added=len(self.posts)-before
+            LOG.info("POSTS: found=%d new=%d",len(found),added)
+            empty=0 if added else empty+1
+            for link in pagination_links(page,current):
+                if link not in queued:
+                    queued.add(link); queue.append(link)
+            # Always try offset pages too; stop only after repeated empty pages.
+            off=len(processed)*OFFSET_STEP
+            fallback=offset_url(self.page_url,off)
+            if fallback not in queued:
+                queued.add(fallback); queue.append(fallback)
+            if empty>=EMPTY_PAGE_LIMIT:
+                LOG.info("No new posts for %d pages; stopping.",EMPTY_PAGE_LIMIT)
+                break
+        self.stats.total_records=len(self.records)
 
-        self.output_dir.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
+    def save(self):
+        self.output_dir.mkdir(parents=True,exist_ok=True)
+        for i,r in enumerate(self.records,1): r.sequence=i
+        with (self.output_dir/"combined.m3u").open("w",encoding="utf-8",newline="\n") as f:
+            f.write('#EXTM3U x-vk-source="club228871429" x-no-dedup="1"\n')
+            for r in self.records:
+                f.write((r.extinf or f"#EXTINF:-1,{r.name or r.tvg_name or 'Unknown'}")+"\n")
+                f.write(r.url+"\n")
+        with (self.output_dir/"records.jsonl").open("w",encoding="utf-8") as f:
+            for r in self.records: f.write(json.dumps(asdict(r),ensure_ascii=False)+"\n")
+        with (self.output_dir/"posts.jsonl").open("w",encoding="utf-8") as f:
+            for p in self.posts: f.write(json.dumps(asdict(p),ensure_ascii=False)+"\n")
+        with (self.output_dir/"playlists.jsonl").open("w",encoding="utf-8") as f:
+            for x in self.playlist_events: f.write(json.dumps(x,ensure_ascii=False)+"\n")
+        with (self.output_dir/"playlists_found.jsonl").open("w",encoding="utf-8") as f:
+            for x in self.playlist_occurrences: f.write(json.dumps(x,ensure_ascii=False)+"\n")
+        d=asdict(self.stats)
+        d["rules"]={"stream_deduplication":False,"download_playlist_before_parse":True,"playlist_url_written_as_stream":False,"max_playlist_depth":self.max_playlist_depth}
+        with (self.output_dir/"stats.json").open("w",encoding="utf-8") as f: json.dump(d,f,ensure_ascii=False,indent=2)
 
-        write_combined_m3u(
-            self.records,
-            self.output_dir / "combined.m3u",
-        )
-
-        write_jsonl(
-            self.records,
-            self.output_dir / "records.jsonl",
-        )
-
-        write_posts_urls(
-            self.records,
-            self.output_dir / "posts_urls.txt",
-        )
-
-        write_playlists(
-            self.playlist_occurrences,
-            self.output_dir / "playlists.txt",
-        )
-
-        write_stats(
-            self.stats,
-            self.records,
-            self.output_dir,
-        )
-
-    def run(self) -> list[Record]:
-        LOG.info("=" * 80)
-        LOG.info("VK IPTV COLLECTOR START")
-        LOG.info("PAGE: %s", self.page_url)
-        LOG.info("NO DEDUPLICATION")
-        LOG.info("=" * 80)
-
-        self.collect_vk_page()
-        self.save()
-
-        LOG.info("=" * 80)
-        LOG.info("VK IPTV COLLECTOR FINISHED")
-        LOG.info("=" * 80)
-        LOG.info("Pages requested      : %s", self.stats.pages_requested)
-        LOG.info("Pages OK             : %s", self.stats.pages_ok)
-        LOG.info("URLs found           : %s", self.stats.urls_found_in_pages)
-        LOG.info("Direct records       : %s", self.stats.direct_records)
-        LOG.info("Playlist URLs        : %s", self.stats.playlist_urls_found)
-        LOG.info("Playlists requested  : %s", self.stats.playlists_requested)
-        LOG.info("Playlists OK         : %s", self.stats.playlists_ok)
-        LOG.info("Playlists failed     : %s", self.stats.playlists_failed)
-        LOG.info("Playlist records     : %s", self.stats.playlist_records)
-        LOG.info("Nested playlists     : %s", self.stats.nested_playlist_urls)
-        LOG.info("TOTAL RECORDS        : %s", self.stats.total_records)
-        LOG.info("Errors               : %s", self.stats.errors)
-        LOG.info("Output               : %s", self.output_dir.resolve())
-        LOG.info("=" * 80)
-
-        return self.records
-
+    def run(self):
+        self.crawl_group(); self.save()
+        LOG.info("FINISHED: posts=%d records=%d playlists=%d",len(self.posts),len(self.records),len(self.playlist_events))
 
 # ============================================================================
 # CLI
