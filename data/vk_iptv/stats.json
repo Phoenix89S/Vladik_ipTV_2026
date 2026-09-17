@@ -1,0 +1,19 @@
+{
+  "pages_requested": 1,
+  "pages_ok": 1,
+  "urls_found_in_pages": 28,
+  "direct_records": 28,
+  "playlist_urls_found": 0,
+  "playlists_requested": 0,
+  "playlists_ok": 0,
+  "playlists_failed": 0,
+  "playlist_records": 0,
+  "nested_playlist_urls": 0,
+  "total_records": 28,
+  "errors": 0,
+  "repeated_playlist_urls": 0,
+  "records_by_source_type": {
+    "direct": 28
+  },
+  "note": "NO DEDUPLICATION: repeated URLs/channels are intentionally retained."
+}
