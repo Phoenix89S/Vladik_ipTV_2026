@@ -17,15 +17,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          python -m pip install aiohttp rich requests
 
       - name: Download VladIk_2ultra.py
         run: |
@@ -33,36 +37,75 @@ jobs:
             -o VladIk_2ultra.py \
             "https://raw.githubusercontent.com/Phoenix89S/Vladik_ipTV_2026/main/VladIk_2ultra.py"
 
-      - name: Run VladIk_2ultra.py
+      - name: Show Python version
+        run: |
+          python --version
+          python -m pip --version
+
+      - name: Run Ultra IPTV
+        id: run-ultra
+        shell: bash
         run: |
           set +e
-          python VladIk_2ultra.py 2>&1 | tee run_output.log
+
+          mkdir -p output
+
+          python VladIk_2ultra.py \
+            --discover \
+            --workers 40 \
+            -o ./output \
+            2>&1 | tee run_output.log
+
           EXIT_CODE=${PIPESTATUS[0]}
+
           echo "VladIk_2ultra exit code: ${EXIT_CODE}"
+
+          echo "exit_code=${EXIT_CODE}" >> "$GITHUB_OUTPUT"
+
           exit "${EXIT_CODE}"
 
-      - name: Save output
+      - name: Save run output to results.txt
         if: always()
         run: |
-          echo "========================================" >> results.txt
-          echo "VladIk_2ultra run: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> results.txt
-          echo "========================================" >> results.txt
+          {
+            echo "========================================"
+            echo "VladIk_2ultra run"
+            echo "Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo "========================================"
+            echo
 
-          if [ -f run_output.log ]; then
-            cat run_output.log >> results.txt
+            if [ -f run_output.log ]; then
+              cat run_output.log
+            else
+              echo "No run_output.log found."
+            fi
+
+            echo
+            echo "========================================"
+          } >> results.txt
+
+      - name: Show generated files
+        if: always()
+        run: |
+          echo "===== OUTPUT DIRECTORY ====="
+
+          if [ -d "./output" ]; then
+            find ./output -type f -print
           else
-            echo "No output produced." >> results.txt
+            echo "output directory does not exist"
           fi
 
-          echo >> results.txt
-
-      - name: Upload log
+      - name: Upload run artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: VladIk_2ultra-log
-          path: run_output.log
+          name: VladIk_2ultra-results
+          path: |
+            run_output.log
+            results.txt
+            output/
           if-no-files-found: ignore
+          retention-days: 30
 
       - name: Commit results
         if: always()
@@ -70,7 +113,8 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-          git add .
+          git add results.txt
+          git add output/ || true
 
           if ! git diff --staged --quiet; then
             git commit -m "Update results from VladIk_2ultra run"
