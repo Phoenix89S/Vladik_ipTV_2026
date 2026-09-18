@@ -1,34 +1,34 @@
-2026-09-17 20:58:17,882 | INFO | ============================================================
-2026-09-17 20:58:17,882 | INFO | FULL GROUP CRAWL
-2026-09-17 20:58:17,882 | INFO | SOURCE: https://vk.ru/club228871429
-2026-09-17 20:58:17,882 | INFO | MAX PAGES: 1000
-2026-09-17 20:58:17,882 | INFO | ============================================================
-2026-09-17 20:58:17,882 | INFO | PAGE 1/1000 | reason=initial | https://vk.ru/club228871429
-2026-09-17 20:58:19,401 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
-2026-09-17 20:58:20,104 | INFO | PAGE 2/1000 | reason=offset=20 | https://vk.ru/club228871429?offset=20
-2026-09-17 20:58:20,672 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
-2026-09-17 20:58:21,375 | INFO | PAGE 3/1000 | reason=offset=20 | https://vk.ru/club228871429?page=2
-2026-09-17 20:58:21,910 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
-2026-09-17 20:58:22,613 | INFO | PAGE 4/1000 | reason=offset=20 | https://m.vk.ru/club228871429?offset=20
-2026-09-17 20:58:22,976 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
-2026-09-17 20:58:22,980 | INFO | STOP: 4 consecutive pages without NEW post_id.
-2026-09-17 20:58:22,980 | INFO | CRAWL FINISHED: pages=4 posts=0 records=0
-2026-09-17 20:58:22,981 | INFO | SAVED: vk_iptv_output/combined.m3u
-2026-09-17 20:58:22,981 | INFO | SAVED: vk_iptv_output/records.jsonl
-2026-09-17 20:58:22,981 | INFO | SAVED: vk_iptv_output/posts.jsonl
-2026-09-17 20:58:22,981 | INFO | SAVED: vk_iptv_output/posts_urls.txt
-2026-09-17 20:58:22,981 | INFO | SAVED: vk_iptv_output/playlists.txt
-2026-09-17 20:58:22,981 | INFO | SAVED: vk_iptv_output/links.jsonl
-2026-09-17 20:58:22,981 | INFO | SAVED: vk_iptv_output/stats.json
-2026-09-17 20:58:22,981 | INFO | ============================================================
-2026-09-17 20:58:22,981 | INFO | VK IPTV COLLECTION FINISHED
-2026-09-17 20:58:22,981 | INFO | Posts          : 0
-2026-09-17 20:58:22,981 | INFO | All post links : 0
-2026-09-17 20:58:22,981 | INFO | Playlists      : 0
-2026-09-17 20:58:22,981 | INFO | Playlist recs  : 0
-2026-09-17 20:58:22,981 | INFO | Direct streams : 0
-2026-09-17 20:58:22,981 | INFO | TOTAL RECORDS  : 0
-2026-09-17 20:58:22,981 | INFO | Errors         : 0
-2026-09-17 20:58:22,981 | INFO | NO DEDUP       : TRUE
-2026-09-17 20:58:22,981 | INFO | EMBEDDED M3U   : TRUE
-2026-09-17 20:58:22,981 | INFO | ============================================================
+2026-09-18 08:06:18,815 | INFO | ============================================================
+2026-09-18 08:06:18,815 | INFO | FULL GROUP CRAWL
+2026-09-18 08:06:18,815 | INFO | SOURCE: https://vk.ru/club228871429
+2026-09-18 08:06:18,815 | INFO | MAX PAGES: 1000
+2026-09-18 08:06:18,815 | INFO | ============================================================
+2026-09-18 08:06:18,816 | INFO | PAGE 1/1000 | reason=initial | https://vk.ru/club228871429
+2026-09-18 08:06:20,965 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
+2026-09-18 08:06:21,670 | INFO | PAGE 2/1000 | reason=offset=20 | https://vk.ru/club228871429?offset=20
+2026-09-18 08:06:22,331 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
+2026-09-18 08:06:23,036 | INFO | PAGE 3/1000 | reason=offset=20 | https://vk.ru/club228871429?page=2
+2026-09-18 08:06:23,761 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
+2026-09-18 08:06:24,466 | INFO | PAGE 4/1000 | reason=offset=20 | https://m.vk.ru/club228871429?offset=20
+2026-09-18 08:06:24,919 | INFO | POSTS: detected=0 new=0 total=0 | RECORDS +0 total=0
+2026-09-18 08:06:24,923 | INFO | STOP: 4 consecutive pages without NEW post_id.
+2026-09-18 08:06:24,923 | INFO | CRAWL FINISHED: pages=4 posts=0 records=0
+2026-09-18 08:06:24,924 | INFO | SAVED: vk_iptv_output/combined.m3u
+2026-09-18 08:06:24,925 | INFO | SAVED: vk_iptv_output/records.jsonl
+2026-09-18 08:06:24,925 | INFO | SAVED: vk_iptv_output/posts.jsonl
+2026-09-18 08:06:24,925 | INFO | SAVED: vk_iptv_output/posts_urls.txt
+2026-09-18 08:06:24,925 | INFO | SAVED: vk_iptv_output/playlists.txt
+2026-09-18 08:06:24,925 | INFO | SAVED: vk_iptv_output/links.jsonl
+2026-09-18 08:06:24,925 | INFO | SAVED: vk_iptv_output/stats.json
+2026-09-18 08:06:24,925 | INFO | ============================================================
+2026-09-18 08:06:24,925 | INFO | VK IPTV COLLECTION FINISHED
+2026-09-18 08:06:24,925 | INFO | Posts          : 0
+2026-09-18 08:06:24,925 | INFO | All post links : 0
+2026-09-18 08:06:24,925 | INFO | Playlists      : 0
+2026-09-18 08:06:24,925 | INFO | Playlist recs  : 0
+2026-09-18 08:06:24,925 | INFO | Direct streams : 0
+2026-09-18 08:06:24,925 | INFO | TOTAL RECORDS  : 0
+2026-09-18 08:06:24,925 | INFO | Errors         : 0
+2026-09-18 08:06:24,925 | INFO | NO DEDUP       : TRUE
+2026-09-18 08:06:24,925 | INFO | EMBEDDED M3U   : TRUE
+2026-09-18 08:06:24,925 | INFO | ============================================================
