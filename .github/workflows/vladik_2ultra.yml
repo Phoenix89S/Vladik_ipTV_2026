@@ -24,7 +24,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -34,16 +33,18 @@ jobs:
       - name: Download VladIk_2ultra.py
         run: |
           curl -fL \
+            --retry 3 \
+            --retry-delay 2 \
             -o VladIk_2ultra.py \
             "https://raw.githubusercontent.com/Phoenix89S/Vladik_ipTV_2026/main/VladIk_2ultra.py"
 
-      - name: Show Python version
+      - name: Check installation
         run: |
+          python -c "import aiohttp, rich, requests; print('Dependencies OK')"
           python --version
-          python -m pip --version
 
       - name: Run Ultra IPTV
-        id: run-ultra
+        id: ultra
         shell: bash
         run: |
           set +e
@@ -59,43 +60,43 @@ jobs:
           EXIT_CODE=${PIPESTATUS[0]}
 
           echo "VladIk_2ultra exit code: ${EXIT_CODE}"
-
           echo "exit_code=${EXIT_CODE}" >> "$GITHUB_OUTPUT"
 
           exit "${EXIT_CODE}"
 
-      - name: Save run output to results.txt
+      - name: Save results
         if: always()
+        shell: bash
         run: |
           {
             echo "========================================"
-            echo "VladIk_2ultra run"
-            echo "Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo "VladIk_2ultra"
+            echo "Run: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo "========================================"
             echo
 
             if [ -f run_output.log ]; then
               cat run_output.log
             else
-              echo "No run_output.log found."
+              echo "No run output."
             fi
 
             echo
             echo "========================================"
-          } >> results.txt
+          } > results.txt
 
-      - name: Show generated files
+      - name: Show output files
         if: always()
         run: |
-          echo "===== OUTPUT DIRECTORY ====="
+          echo "===== GENERATED FILES ====="
 
-          if [ -d "./output" ]; then
-            find ./output -type f -print
+          if [ -d output ]; then
+            find output -type f -print
           else
-            echo "output directory does not exist"
+            echo "No output directory."
           fi
 
-      - name: Upload run artifacts
+      - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -109,16 +110,17 @@ jobs:
 
       - name: Commit results
         if: always()
+        shell: bash
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
           git add results.txt
-          git add output/ || true
+          git add output/ 2>/dev/null || true
 
-          if ! git diff --staged --quiet; then
-            git commit -m "Update results from VladIk_2ultra run"
-            git push
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
           else
-            echo "No changes to commit"
+            git commit -m "Update VladIk_2ultra results"
+            git push
           fi
