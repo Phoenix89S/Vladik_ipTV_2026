@@ -1,0 +1,53 @@
+name: Vladik Extra IPTV Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-vladik-extra:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install aiohttp requests rich
+
+      - name: Run Vladik_extra.py
+        run: |
+          python Vladik_extra.py \
+            -s "https://raw.githubusercontent.com/Phoenix89S/IpTV_playlist_2026Ru/main/prowerka_epg.m3u" \
+            --workers 100 \
+            --timeout 8 \
+            --deep \
+            --top 5 \
+            --max-alts 20 \
+            --verbose \
+            -o output
+
+      - name: Show generated files
+        if: always()
+        run: |
+          echo "===== OUTPUT ====="
+          find output -maxdepth 2 -type f -print -exec ls -lh {} \; || true
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vladik-extra-results
+          path: output/
+          if-no-files-found: warn
