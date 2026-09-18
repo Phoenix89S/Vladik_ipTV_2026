@@ -1,0 +1,8 @@
+========================================
+VladIk_2ultra run: 2026-09-18 18:56:12 UTC
+========================================
+Traceback (most recent call last):
+  File "/home/runner/work/Vladik_ipTV_2026/Vladik_ipTV_2026/VladIk_2ultra.py", line 48, in <module>
+    import aiohttp
+ModuleNotFoundError: No module named 'aiohttp'
+
