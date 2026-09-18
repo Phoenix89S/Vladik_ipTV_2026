@@ -1,19 +1,112 @@
 ========================================
-VladIk_2ultra run: 2026-09-18 18:56:12 UTC
-========================================
-Traceback (most recent call last):
-  File "/home/runner/work/Vladik_ipTV_2026/Vladik_ipTV_2026/VladIk_2ultra.py", line 48, in <module>
-    import aiohttp
-ModuleNotFoundError: No module named 'aiohttp'
-
-========================================
-VladIk_2ultra run
-Date: 2026-09-18 19:04:42 UTC
+VladIk_2ultra
+Run: 2026-09-18 21:39:23 UTC
 ========================================
 
-Traceback (most recent call last):
-  File "/home/runner/work/Vladik_ipTV_2026/Vladik_ipTV_2026/VladIk_2ultra.py", line 48, in <module>
-    import aiohttp
-ModuleNotFoundError: No module named 'aiohttp'
+Режим --discover: ищем альтернативы по всему интернету...
+Loading 42 source(s)...
+  → https://iptv-org.github.io/iptv/index.m3u: 11047 channels (prio=10)
+  → https://iptv-org.github.io/iptv/index.category.m3u: 11739 channels (prio=9)
+  → https://iptv-org.github.io/iptv/index.country.m3u: 12473 channels (prio=8)
+  → https://iptv-org.github.io/iptv/index.language.m3u: 12424 channels (prio=7)
+  → https://iptv-org.github.io/iptv/languages/rus.m3u: 664 channels (prio=6)
+  → https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8: 2074 
+channels (prio=5)
+  → https://iptv-org.github.io/iptv/countries/ru.m3u: 517 channels (prio=4)
+  → https://raw.githubusercontent.com/smolnp/IPTVru/gh-pages/IPTVru.m3u: 328 
+channels (prio=3)
+  → https://raw.githubusercontent.com/smolnp/IPTVru/gh-pages/IPTVstable.m3u8: 
+223 channels (prio=2)
+  → https://raw.githubusercontent.com/smolnp/IPTVru/gh-pages/IPTVmir.m3u8: 367 
+channels (prio=1)
+  → https://raw.githubusercontent.com/smolnp/IPTVru/gh-pages/IPTVdonor.m3u: 1807
+channels (prio=0)
+  → https://raw.githubusercontent.com/smolnp/IPTVru/gh-pages/IPRadio.m3u: 62 
+channels (prio=-1)
+  → https://naggdd.github.io/iptv/ru.m3u: 1082 channels (prio=-2)
+  → https://naggdd.github.io/iptv/music.m3u: 372 channels (prio=-3)
+  → https://naggdd.github.io/iptv/cartoons.m3u: 376 channels (prio=-4)
+  → 
+https://raw.githubusercontent.com/IPTVRU2026/IPTVMIR/main/IPTV_MEGA_PLAYLIST.m3u
+: 8040 channels (prio=-5)
+  → https://iptv-org.github.io/iptv/countries/kz.m3u: 49 channels (prio=-6)
+  → https://aidoseg.github.io/qazaqiptv/playlist.m3u8: 45 channels (prio=-7)
+  → https://raw.githubusercontent.com/Monoloshka/iptv/main/BeeTV.m3u: 227 
+channels (prio=-8)
+  → https://raw.githubusercontent.com/Monoloshka/iptv/main/full-iptv.m3u: 316 
+channels (prio=-9)
+  → https://raw.githubusercontent.com/Monoloshka/iptv/main/tv.m3u: 86 channels 
+(prio=-10)
+  → https://iptv-org.github.io/iptv/countries/ua.m3u: 196 channels (prio=-11)
+  → https://myplaylists.github.io/iptv/ua.m3u: 62 channels (prio=-12)
+  → https://myplaylists.github.io/iptv/ru.m3u: 13 channels (prio=-13)
+  → https://iptv-org.github.io/iptv/countries/mn.m3u: 38 channels (prio=-14)
+  → https://iptv-org.github.io/iptv/countries/by.m3u: 24 channels (prio=-15)
+  → https://iptv-org.github.io/iptv/countries/uz.m3u: 33 channels (prio=-16)
+  → https://iptv-org.github.io/iptv/countries/am.m3u: 8 channels (prio=-17)
+  → https://iptv-org.github.io/iptv/countries/ge.m3u: 22 channels (prio=-18)
+  → https://iptv-org.github.io/iptv/countries/az.m3u: 18 channels (prio=-19)
+  → https://iptv-org.github.io/iptv/countries/md.m3u: 32 channels (prio=-20)
+  → https://iptv-org.github.io/iptv/countries/kg.m3u: 8 channels (prio=-21)
+  → https://iptv-org.github.io/iptv/countries/tj.m3u: 14 channels (prio=-22)
+  → https://iptv-org.github.io/iptv/countries/tm.m3u: 8 channels (prio=-23)
+  → https://iptv-org.github.io/iptv/categories/news.m3u: 1006 channels 
+(prio=-24)
+  → https://iptv-org.github.io/iptv/categories/sports.m3u: 434 channels 
+(prio=-25)
+  → https://iptv-org.github.io/iptv/categories/movies.m3u: 766 channels 
+(prio=-26)
+  → https://iptv-org.github.io/iptv/categories/entertainment.m3u: 884 channels 
+(prio=-27)
+  → https://iptv-org.github.io/iptv/categories/kids.m3u: 411 channels (prio=-28)
+  → https://iptv-org.github.io/iptv/categories/music.m3u: 740 channels 
+(prio=-29)
+  → https://iptv-org.github.io/iptv/categories/documentary.m3u: 252 channels 
+(prio=-30)
+  → https://iptv-org.github.io/iptv/categories/general.m3u: 2712 channels 
+(prio=-31)
+
+Total raw entries (после поиска по интернету): 71999
+Unique channels after fuzzy grouping: 9756
+
+Starting check (workers=40, deep=False, fuzzy=0.82)...
+  Checking streams... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15257/15257 0:00:00
+Check finished in 460.6s
+
+Playlists written:
+  • output/best.m3u          → 7787  (1 best per channel)
+  • output/stable.m3u        → 7787  (low latency only)
+  • output/online.m3u        → 11349  (all working)
+  • output/all_with_alts.m3u → 10181  (up to 3 alternatives)
+      Ultra IPTV Checker v2 — Summary       
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ Metric                          ┃ Value  ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ Channels total                  │ 9756   │
+│ Channels with ≥1 working stream │ 7787   │
+│ Streams checked                 │ 15257  │
+│ Working streams                 │ 11349  │
+│ Avg latency (working)           │ 470 ms │
+└─────────────────────────────────┴────────┘
+
+Top 10 highest-scored streams:
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━┳━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Channel                   ┃ Score ┃ Latency ┃ Res ┃ URL (truncated)          ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━╇━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ like Gecko)               │    55 │   180ms │ ?   │ https://d3k8wzt41aflvx.… │
+│ Chrome/149.0.0.0 Safari   │       │         │     │                          │
+│ 3ABN International (720p) │    55 │   101ms │ ?   │ http://185.9.2.18/chid_… │
+│ 3ABN Kids                 │    55 │    91ms │ ?   │ https://3abn.bozztv.com… │
+│ 3ABN Latino               │    55 │    90ms │ ?   │ https://3abn.bozztv.com… │
+│ 3ABN Praise Him Music     │    55 │    94ms │ ?   │ https://3abn.bozztv.com… │
+│ Network                   │       │         │     │                          │
+│ 3ABN Proclaim! Network    │    55 │    91ms │ ?   │ https://3abn.bozztv.com… │
+│ 3HD                       │    55 │   110ms │ ?   │ https://live-us1.thaimo… │
+│ 4 Afghanistan             │    55 │   111ms │ ?   │ https://mediaserver.abn… │
+│ 4ever Cinema (1080p)      │    55 │   122ms │ ?   │ http://stream.mcquack.n… │
+│ 4ever Drama (1080p)       │    55 │   121ms │ ?   │ http://stream.mcquack.n… │
+└───────────────────────────┴───────┴─────────┴─────┴──────────────────────────┘
+
+Detailed results → output/results.json
 
 ========================================
