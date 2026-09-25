@@ -2544,3 +2544,2536 @@ SKALA_OUTPUT_FILES = [
     "diagnostics.jsonl",
     "alternatives.jsonl",
 ]
+
+
+# ============================================================================
+# ДОПОЛНИТЕЛЬНЫЕ ФАЙЛЫ КОНТРОЛЯ
+# ============================================================================
+
+SKALA_EXTRA_OUTPUT_FILES = [
+    "candidates.jsonl",
+    "failed_candidates.jsonl",
+    "working.jsonl",
+    "replacement.jsonl",
+
+    "streams.txt",
+    "working_streams.txt",
+    "failed_streams.txt",
+
+    "archive.txt",
+    "multitrack.txt",
+
+    "kazakhstan.txt",
+    "tajikistan.txt",
+    "turkmenistan.txt",
+    "uzbekistan.txt",
+    "mongolia.txt",
+
+    "sources.txt",
+    "source_statistics.json",
+    "final_statistics.json",
+
+    "SKALA_DREG_FULL.txt",
+    "SKALA_DREG_SOURCE_ERRORS.txt",
+    "SKALA_DREG_HTTP_ERRORS.txt",
+    "SKALA_DREG_HLS_ERRORS.txt",
+    "SKALA_DREG_TIMEOUTS.txt",
+    "SKALA_DREG_REPLACED.txt",
+
+    "OUTPUT_CONTROL.txt",
+]
+
+
+# ============================================================================
+# РЕГИОНАЛЬНЫЕ КОДЫ
+# ============================================================================
+
+REGION_NAMES = {
+    "kz": "Казахстан",
+    "tj": "Таджикистан",
+    "tm": "Туркменистан",
+    "uz": "Узбекистан",
+    "mn": "Монголия",
+}
+
+
+# ============================================================================
+# ПРОВЕРКА И СОЗДАНИЕ КАТАЛОГА
+# ============================================================================
+
+def ensure_output_structure(output_dir: Path) -> None:
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    reports_dir = output_dir / "reports"
+    reports_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    sources_dir = output_dir / "sources"
+    sources_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    archive_dir = output_dir / "archive"
+    archive_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+
+# ============================================================================
+# БЕЗОПАСНАЯ ЗАПИСЬ UTF-8
+# ============================================================================
+
+def write_text_file(
+    path: Path,
+    text: str,
+) -> None:
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    with path.open(
+        "w",
+        encoding="utf-8",
+        newline="\n",
+    ) as handle:
+
+        handle.write(
+            text.rstrip()
+            + "\n"
+        )
+
+
+# ============================================================================
+# ДОБАВЛЕНИЕ СТРОКИ В UTF-8 ФАЙЛ
+# ============================================================================
+
+def append_text_file(
+    path: Path,
+    text: str,
+) -> None:
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    with path.open(
+        "a",
+        encoding="utf-8",
+        newline="\n",
+    ) as handle:
+
+        handle.write(text)
+
+        if not text.endswith("\n"):
+            handle.write("\n")
+
+
+# ============================================================================
+# ФОРМАТ ДАТЫ / ВРЕМЕНИ
+# ============================================================================
+
+def report_timestamp() -> str:
+    return time.strftime(
+        "%Y-%m-%d %H:%M:%S",
+        time.localtime(),
+    )
+
+
+# ============================================================================
+# ФОРМАТИРОВАНИЕ SKALA / DREG
+# ============================================================================
+
+def skala_header(
+    title: str,
+) -> str:
+
+    return (
+        "\n"
+        + "=" * 78
+        + "\n"
+        + "SKALA / DREG\n"
+        + title.upper()
+        + "\n"
+        + "=" * 78
+        + "\n"
+        + f"Время проверки: {report_timestamp()}\n"
+        + "=" * 78
+        + "\n"
+    )
+
+
+# ============================================================================
+# РАСШИРЕННОЕ ОПИСАНИЕ ОШИБКИ
+# ============================================================================
+
+def russian_failure_reason(
+    status: str,
+    error: str = "",
+    http_status: int = 0,
+) -> str:
+
+    status_upper = (
+        str(status or "")
+        .strip()
+        .upper()
+    )
+
+    error_lower = (
+        str(error or "")
+        .lower()
+    )
+
+    if http_status == 404:
+        return (
+            "Сервер сообщил HTTP 404. "
+            "Запрошенный поток или ресурс отсутствует."
+        )
+
+    if http_status == 403:
+        return (
+            "Сервер сообщил HTTP 403. "
+            "Доступ к потоку запрещён сервером."
+        )
+
+    if http_status == 401:
+        return (
+            "Сервер сообщил HTTP 401. "
+            "Для получения потока требуется авторизация."
+        )
+
+    if http_status == 429:
+        return (
+            "Сервер сообщил HTTP 429. "
+            "Источник ограничил количество запросов."
+        )
+
+    if http_status >= 500:
+        return (
+            f"Сервер источника вернул ошибку HTTP {http_status}. "
+            "Проблема находится на стороне удалённого сервера."
+        )
+
+    if "timeout" in error_lower:
+        return (
+            "Истекло время ожидания ответа. "
+            "Сервер не успел предоставить поток в установленный срок."
+        )
+
+    if "connection" in error_lower:
+        return (
+            "Не удалось установить сетевое соединение "
+            "с сервером потока."
+        )
+
+    if "dns" in error_lower:
+        return (
+            "Не удалось разрешить DNS-имя источника."
+        )
+
+    if "ssl" in error_lower:
+        return (
+            "Ошибка TLS/SSL при подключении к источнику."
+        )
+
+    if status_upper == "NOT_M3U":
+        return (
+            "Источник ответил, но полученное содержимое "
+            "не является M3U/M3U8-плейлистом."
+        )
+
+    if status_upper == "EMPTY":
+        return (
+            "Источник ответил, но поток не содержит "
+            "доступных media-сегментов."
+        )
+
+    if status_upper == "HLS_FAILED":
+        return (
+            "Не удалось получить или разобрать HLS manifest."
+        )
+
+    if status_upper == "SEGMENT_FAILED":
+        return (
+            "HLS manifest получен, но media-сегмент "
+            "потока недоступен."
+        )
+
+    if status_upper == "NO_VIDEO":
+        return (
+            "Поток доступен, однако видеодорожка "
+            "не обнаружена."
+        )
+
+    if status_upper == "NO_AUDIO":
+        return (
+            "Поток доступен, однако аудиодорожка "
+            "не обнаружена."
+        )
+
+    if status_upper == "FAILED":
+        return (
+            "Поток не прошёл контрольную проверку."
+        )
+
+    return (
+        error.strip()
+        if error.strip()
+        else
+        "Причина отказа не была определена "
+        "на уровне транспортного протокола."
+    )
+
+
+# ============================================================================
+# ОПРЕДЕЛЕНИЕ РЕГИОНА
+# ============================================================================
+
+def detect_region(
+    name: str = "",
+    url: str = "",
+    group_title: str = "",
+    tvg_id: str = "",
+    tvg_name: str = "",
+) -> str:
+
+    source = " ".join(
+        [
+            name or "",
+            url or "",
+            group_title or "",
+            tvg_id or "",
+            tvg_name or "",
+        ]
+    ).lower()
+
+    region_patterns = {
+        "kz": (
+            "kazakhstan",
+            "kazakh",
+            "казахстан",
+            "казах",
+            "қазақстан",
+            ".kz",
+            " kz ",
+            " kz-",
+        ),
+
+        "tj": (
+            "tajikistan",
+            "tajik",
+            "таджикистан",
+            "таджик",
+            ".tj",
+            " tj ",
+        ),
+
+        "tm": (
+            "turkmenistan",
+            "turkmen",
+            "туркменистан",
+            "туркмен",
+            ".tm",
+            " tm ",
+        ),
+
+        "uz": (
+            "uzbekistan",
+            "uzbek",
+            "узбекистан",
+            "узбек",
+            ".uz",
+            " uz ",
+        ),
+
+        "mn": (
+            "mongolia",
+            "mongol",
+            "монголия",
+            "монгол",
+            ".mn",
+            " mn ",
+        ),
+    }
+
+    for region, patterns in region_patterns.items():
+
+        for pattern in patterns:
+
+            if pattern in source:
+                return region
+
+    return ""
+
+
+# ============================================================================
+# ИНФОРМАЦИЯ DVR
+# ============================================================================
+
+def detect_dvr_features(
+    text: str,
+    url: str,
+) -> dict:
+
+    sample = (
+        text or ""
+    ).upper()
+
+    features = {
+        "archive": False,
+        "recording": False,
+        "timeshift": False,
+        "pause": False,
+        "method": "",
+        "reason": "",
+    }
+
+    if (
+        "#EXT-X-PLAYLIST-TYPE:EVENT"
+        in sample
+    ):
+        features["timeshift"] = True
+        features["pause"] = True
+        features["method"] = "HLS EVENT"
+        features["reason"] = (
+            "HLS playlist имеет тип EVENT; "
+            "плейлист допускает накопление сегментов."
+        )
+
+    if (
+        "#EXT-X-PROGRAM-DATE-TIME"
+        in sample
+    ):
+        features["archive"] = True
+        features["timeshift"] = True
+
+        if not features["method"]:
+            features["method"] = (
+                "HLS PROGRAM-DATE-TIME"
+            )
+
+        features["reason"] = (
+            "В потоке обнаружены временные метки "
+            "программы, пригодные для DVR/timeshift."
+        )
+
+    if (
+        "#EXT-X-MEDIA-SEQUENCE"
+        in sample
+    ):
+        features["timeshift"] = True
+
+        if not features["method"]:
+            features["method"] = (
+                "HLS MEDIA-SEQUENCE"
+            )
+
+    if (
+        "#EXT-X-ENDLIST"
+        not in sample
+        and (
+            "#EXTM3U" in sample
+            or "#EXTINF:" in sample
+        )
+    ):
+        features["pause"] = True
+
+    if (
+        "DVR" in sample
+        or "TIMESHIFT" in sample
+        or "ARCHIVE" in sample
+    ):
+        features["archive"] = True
+        features["recording"] = True
+        features["timeshift"] = True
+        features["pause"] = True
+
+        features["method"] = (
+            "SOURCE DVR MARKER"
+        )
+
+    return features
+
+
+# ============================================================================
+# СОЗДАНИЕ EXTINF
+# ============================================================================
+
+def build_extinf(
+    name: str,
+    tvg_id: str = "",
+    tvg_name: str = "",
+    tvg_logo: str = "",
+    group_title: str = "",
+    extra_attributes: Optional[dict[str, str]] = None,
+) -> str:
+
+    attrs = []
+
+    if tvg_id:
+        attrs.append(
+            f'tvg-id="{tvg_id}"'
+        )
+
+    if tvg_name:
+        attrs.append(
+            f'tvg-name="{tvg_name}"'
+        )
+
+    if tvg_logo:
+        attrs.append(
+            f'tvg-logo="{tvg_logo}"'
+        )
+
+    if group_title:
+        attrs.append(
+            f'group-title="{group_title}"'
+        )
+
+    if extra_attributes:
+
+        for key, value in extra_attributes.items():
+
+            if value is None:
+                continue
+
+            attrs.append(
+                f'{key}="{value}"'
+            )
+
+    prefix = "#EXTINF:-1"
+
+    if attrs:
+        prefix += " " + " ".join(attrs)
+
+    return (
+        prefix
+        + ","
+        + (
+            name.strip()
+            if name and name.strip()
+            else "Unknown"
+        )
+    )
+
+
+# ============================================================================
+# ЗАПИСЬ M3U
+# ============================================================================
+
+def write_m3u_records(
+    path: Path,
+    records: list,
+    source_name: str = "SKALA",
+) -> None:
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    with path.open(
+        "w",
+        encoding="utf-8",
+        newline="\n",
+    ) as handle:
+
+        handle.write(
+            '#EXTM3U '
+            f'x-skala-source="{source_name}" '
+            'x-no-dedup="1" '
+            'x-dvr="supported-when-provided-by-backend"\n'
+        )
+
+        for record in records:
+
+            if hasattr(record, "extinf"):
+                extinf = (
+                    record.extinf or ""
+                ).strip()
+            else:
+                extinf = ""
+
+            name = getattr(
+                record,
+                "name",
+                "",
+            )
+
+            tvg_id = getattr(
+                record,
+                "tvg_id",
+                "",
+            )
+
+            tvg_name = getattr(
+                record,
+                "tvg_name",
+                "",
+            )
+
+            tvg_logo = getattr(
+                record,
+                "tvg_logo",
+                "",
+            )
+
+            group_title = getattr(
+                record,
+                "group_title",
+                "",
+            )
+
+            url = getattr(
+                record,
+                "url",
+                "",
+            )
+
+            if not extinf:
+
+                extinf = build_extinf(
+                    name=name,
+                    tvg_id=tvg_id,
+                    tvg_name=tvg_name,
+                    tvg_logo=tvg_logo,
+                    group_title=group_title,
+                )
+
+            if not url:
+                continue
+
+            handle.write(
+                extinf
+                + "\n"
+            )
+
+            handle.write(
+                url.strip()
+                + "\n"
+            )
+
+
+# ============================================================================
+# ПОЛНЫЙ КОНТРОЛЬ ВЫХОДНЫХ ФАЙЛОВ
+# ============================================================================
+
+def verify_output_files(
+    output_dir: Path,
+) -> dict:
+
+    result = {
+        "expected": [],
+        "present": [],
+        "missing": [],
+        "empty": [],
+    }
+
+    expected = (
+        SKALA_OUTPUT_FILES
+        + SKALA_EXTRA_OUTPUT_FILES
+    )
+
+    for filename in expected:
+
+        path = (
+            output_dir
+            / filename
+        )
+
+        result["expected"].append(
+            filename
+        )
+
+        if not path.exists():
+
+            result["missing"].append(
+                filename
+            )
+
+            continue
+
+        result["present"].append(
+            filename
+        )
+
+        try:
+
+            if path.stat().st_size == 0:
+
+                result["empty"].append(
+                    filename
+                )
+
+        except OSError:
+
+            result["empty"].append(
+                filename
+            )
+
+    return result
+
+
+# ============================================================================
+# СОЗДАНИЕ OUTPUT CONTROL
+# ============================================================================
+
+def write_output_control(
+    output_dir: Path,
+    verification: dict,
+) -> None:
+
+    lines = []
+
+    lines.append(
+        "SKALA / DREG — КОНТРОЛЬ ВЫХОДНЫХ ФАЙЛОВ"
+    )
+
+    lines.append(
+        "=" * 78
+    )
+
+    lines.append(
+        f"Время: {report_timestamp()}"
+    )
+
+    lines.append("")
+
+    lines.append(
+        f"Ожидалось файлов: "
+        f"{len(verification['expected'])}"
+    )
+
+    lines.append(
+        f"Создано файлов: "
+        f"{len(verification['present'])}"
+    )
+
+    lines.append(
+        f"Отсутствует: "
+        f"{len(verification['missing'])}"
+    )
+
+    lines.append(
+        f"Пустых: "
+        f"{len(verification['empty'])}"
+    )
+
+    lines.append("")
+    lines.append("ОЖИДАЕМЫЕ ФАЙЛЫ:")
+    lines.append("")
+
+    for filename in verification["expected"]:
+
+        if filename in verification["missing"]:
+
+            state = "ОТСУТСТВУЕТ"
+
+        elif filename in verification["empty"]:
+
+            state = "СОЗДАН, НО ПУСТ"
+
+        else:
+
+            state = "OK"
+
+        lines.append(
+            f"[{state}] {filename}"
+        )
+
+    write_text_file(
+        output_dir
+        / "OUTPUT_CONTROL.txt",
+        "\n".join(lines),
+    )
+
+
+# ============================================================================
+# ИТОГОВЫЙ СТАТИСТИЧЕСКИЙ JSON
+# ============================================================================
+
+def write_final_statistics(
+    output_dir: Path,
+    collector,
+) -> None:
+
+    candidates = getattr(
+        collector,
+        "candidates",
+        [],
+    )
+
+    final_records = getattr(
+        collector,
+        "final_records",
+        getattr(
+            collector,
+            "records",
+            [],
+        ),
+    )
+
+    working = 0
+    failed = 0
+    replaced = 0
+    alternatives = 0
+    multitrack = 0
+
+    regional = {
+        "kz": 0,
+        "tj": 0,
+        "tm": 0,
+        "uz": 0,
+        "mn": 0,
+    }
+
+    for candidate in candidates:
+
+        status = str(
+            getattr(
+                candidate,
+                "check_status",
+                "",
+            )
+        ).upper()
+
+        if status == "WORKING":
+            working += 1
+
+        if status == "FAILED":
+            failed += 1
+
+        if getattr(
+            candidate,
+            "alternative_found",
+            False,
+        ):
+            replaced += 1
+
+        if getattr(
+            candidate,
+            "multitrack",
+            False,
+        ):
+            multitrack += 1
+
+        region = detect_region(
+            getattr(
+                candidate,
+                "name",
+                "",
+            ),
+            getattr(
+                candidate,
+                "url",
+                "",
+            ),
+            getattr(
+                candidate,
+                "group_title",
+                "",
+            ),
+            getattr(
+                candidate,
+                "tvg_id",
+                "",
+            ),
+            getattr(
+                candidate,
+                "tvg_name",
+                "",
+            ),
+        )
+
+        if region in regional:
+            regional[region] += 1
+
+    data = {
+        "time": report_timestamp(),
+
+        "candidates": len(candidates),
+
+        "working": working,
+
+        "failed": failed,
+
+        "replaced": replaced,
+
+        "alternatives": alternatives,
+
+        "multitrack": multitrack,
+
+        "final_records": len(
+            final_records
+        ),
+
+        "regions": regional,
+
+        "no_deduplication": True,
+
+        "replacement_policy": (
+            "НЕРАБОЧИЙ ПОТОК НЕ УДАЛЯЕТСЯ "
+            "ДО ПОИСКА И ПРОВЕРКИ АЛЬТЕРНАТИВ"
+        ),
+
+        "dvr_policy": (
+            "M3U НЕ СОЗДАЁТ DVR САМОСТОЯТЕЛЬНО; "
+            "АРХИВ/TIMESHIFT/RECORDING ЗАВИСЯТ ОТ "
+            "ИСТОЧНИКА ИЛИ DVR BACKEND"
+        ),
+    }
+
+    with (
+        output_dir
+        / "final_statistics.json"
+    ).open(
+        "w",
+        encoding="utf-8",
+    ) as handle:
+
+        json.dump(
+            data,
+            handle,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+
+# ============================================================================
+# ФИНАЛЬНЫЙ КОНТРОЛЬНЫЙ ОТЧЁТ
+# ============================================================================
+
+def write_full_skala_report(
+    output_dir: Path,
+    collector,
+) -> None:
+
+    lines = []
+
+    lines.append(
+        skala_header(
+            "ПОЛНЫЙ ИТОГОВЫЙ ОТЧЁТ"
+        )
+    )
+
+    stats = getattr(
+        collector,
+        "stats",
+        None,
+    )
+
+    lines.append(
+        "ОБЩАЯ СТАТИСТИКА"
+    )
+
+    lines.append("-" * 78)
+
+    if stats is not None:
+
+        for key, value in asdict(
+            stats
+        ).items():
+
+            if isinstance(
+                value,
+                (str, int, float, bool),
+            ):
+
+                lines.append(
+                    f"{key}: {value}"
+                )
+
+    lines.append("")
+    lines.append(
+        "ПРИНЦИП ОБРАБОТКИ"
+    )
+
+    lines.append("-" * 78)
+
+    lines.append(
+        "1. Сначала собираются исходные потоки."
+    )
+
+    lines.append(
+        "2. Потоки не удаляются только из-за "
+        "первой неудачной проверки."
+    )
+
+    lines.append(
+        "3. Для неработающих потоков выполняется "
+        "поиск альтернатив."
+    )
+
+    lines.append(
+        "4. Альтернативы проверяются отдельно."
+    )
+
+    lines.append(
+        "5. Рабочая альтернатива заменяет "
+        "неработающий URL."
+    )
+
+    lines.append(
+        "6. Если рабочей альтернативы нет, "
+        "канал попадает в SKALA/DREG отчёт."
+    )
+
+    lines.append(
+        "7. Потоки и записи не дедуплицируются."
+    )
+
+    lines.append(
+        "8. Источник каждой записи сохраняется."
+    )
+
+    lines.append(
+        "9. Региональные источники сохраняются."
+    )
+
+    lines.append(
+        "10. Мультитрековые потоки отмечаются отдельно."
+    )
+
+    lines.append(
+        "11. DVR/timeshift не объявляется реально "
+        "доступным без соответствующей поддержки "
+        "источника или backend."
+    )
+
+    lines.append("")
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_FULL.txt",
+        "\n".join(lines),
+    )
+
+
+# ============================================================================
+# ОСНОВНОЙ ФИНАЛИЗАТОР
+# ============================================================================
+
+def finalize_skala_output(
+    collector,
+) -> None:
+
+    output_dir = (
+        collector.output_dir
+    )
+
+    ensure_output_structure(
+        output_dir
+    )
+
+    # ------------------------------------------------------------
+    # Если расширенный pipeline существует,
+    # используем его.
+    # ------------------------------------------------------------
+
+    final_records = getattr(
+        collector,
+        "final_records",
+        None,
+    )
+
+    if final_records is None:
+
+        final_records = getattr(
+            collector,
+            "records",
+            [],
+        )
+
+    candidates = getattr(
+        collector,
+        "candidates",
+        [],
+    )
+
+    working_candidates = []
+
+    failed_candidates = []
+
+    alternative_candidates = []
+
+    archive_candidates = []
+
+    multitrack_candidates = []
+
+    regional_records = {
+        "kz": [],
+        "tj": [],
+        "tm": [],
+        "uz": [],
+        "mn": [],
+    }
+
+    # ------------------------------------------------------------
+    # Классификация кандидатов
+    # ------------------------------------------------------------
+
+    for candidate in candidates:
+
+        status = str(
+            getattr(
+                candidate,
+                "check_status",
+                "",
+            )
+        ).upper()
+
+        if status == "WORKING":
+            working_candidates.append(
+                candidate
+            )
+
+        if status == "FAILED":
+            failed_candidates.append(
+                candidate
+            )
+
+        if getattr(
+            candidate,
+            "alternative_found",
+            False,
+        ):
+            alternative_candidates.append(
+                candidate
+            )
+
+        if (
+            getattr(
+                candidate,
+                "archive_supported",
+                False,
+            )
+            or getattr(
+                candidate,
+                "timeshift_supported",
+                False,
+            )
+            or getattr(
+                candidate,
+                "recording_supported",
+                False,
+            )
+        ):
+            archive_candidates.append(
+                candidate
+            )
+
+        if getattr(
+            candidate,
+            "multitrack",
+            False,
+        ):
+            multitrack_candidates.append(
+                candidate
+            )
+
+        region = detect_region(
+            getattr(
+                candidate,
+                "name",
+                "",
+            ),
+            getattr(
+                candidate,
+                "url",
+                "",
+            ),
+            getattr(
+                candidate,
+                "group_title",
+                "",
+            ),
+            getattr(
+                candidate,
+                "tvg_id",
+                "",
+            ),
+            getattr(
+                candidate,
+                "tvg_name",
+                "",
+            ),
+        )
+
+        if region in regional_records:
+
+            regional_records[
+                region
+            ].append(candidate)
+
+    # ------------------------------------------------------------
+    # ОСНОВНЫЕ M3U
+    # ------------------------------------------------------------
+
+    write_m3u_records(
+        output_dir / "combined.m3u",
+        final_records,
+        "SKALA_FINAL",
+    )
+
+    write_m3u_records(
+        output_dir
+        / "combined_all_alternatives.m3u",
+        final_records,
+        "SKALA_ALL_ALTERNATIVES",
+    )
+
+    write_m3u_records(
+        output_dir
+        / "combined_working.m3u",
+        final_records,
+        "SKALA_WORKING",
+    )
+
+    write_m3u_records(
+        output_dir
+        / "combined_archive.m3u",
+        archive_candidates,
+        "SKALA_ARCHIVE",
+    )
+
+    # ------------------------------------------------------------
+    # РЕГИОНЫ
+    # ------------------------------------------------------------
+
+    write_m3u_records(
+        output_dir
+        / "combined_kz.m3u",
+        regional_records["kz"],
+        "SKALA_KAZAKHSTAN",
+    )
+
+    write_m3u_records(
+        output_dir
+        / "combined_tj.m3u",
+        regional_records["tj"],
+        "SKALA_TAJIKISTAN",
+    )
+
+    write_m3u_records(
+        output_dir
+        / "combined_tm.m3u",
+        regional_records["tm"],
+        "SKALA_TURKMENISTAN",
+    )
+
+    write_m3u_records(
+        output_dir
+        / "combined_uz.m3u",
+        regional_records["uz"],
+        "SKALA_UZBEKISTAN",
+    )
+
+    write_m3u_records(
+        output_dir
+        / "combined_mn.m3u",
+        regional_records["mn"],
+        "SKALA_MONGOLIA",
+    )
+
+    # ------------------------------------------------------------
+    # JSONL КАНДИДАТЫ
+    # ------------------------------------------------------------
+
+    with (
+        output_dir
+        / "candidates.jsonl"
+    ).open(
+        "w",
+        encoding="utf-8",
+    ) as handle:
+
+        for candidate in candidates:
+
+            if hasattr(
+                candidate,
+                "__dataclass_fields__",
+            ):
+
+                data = asdict(
+                    candidate
+                )
+
+            else:
+
+                data = {
+                    "name": getattr(
+                        candidate,
+                        "name",
+                        "",
+                    ),
+                    "url": getattr(
+                        candidate,
+                        "url",
+                        "",
+                    ),
+                }
+
+            handle.write(
+                json.dumps(
+                    data,
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+
+    # ------------------------------------------------------------
+    # FAILED
+    # ------------------------------------------------------------
+
+    with (
+        output_dir
+        / "failed_candidates.jsonl"
+    ).open(
+        "w",
+        encoding="utf-8",
+    ) as handle:
+
+        for candidate in failed_candidates:
+
+            if hasattr(
+                candidate,
+                "__dataclass_fields__",
+            ):
+
+                data = asdict(
+                    candidate
+                )
+
+            else:
+
+                data = {
+                    "name": getattr(
+                        candidate,
+                        "name",
+                        "",
+                    ),
+                    "url": getattr(
+                        candidate,
+                        "url",
+                        "",
+                    ),
+                }
+
+            handle.write(
+                json.dumps(
+                    data,
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+
+    # ------------------------------------------------------------
+    # WORKING
+    # ------------------------------------------------------------
+
+    with (
+        output_dir
+        / "working.jsonl"
+    ).open(
+        "w",
+        encoding="utf-8",
+    ) as handle:
+
+        for candidate in working_candidates:
+
+            if hasattr(
+                candidate,
+                "__dataclass_fields__",
+            ):
+
+                data = asdict(
+                    candidate
+                )
+
+            else:
+
+                data = {
+                    "name": getattr(
+                        candidate,
+                        "name",
+                        "",
+                    ),
+                    "url": getattr(
+                        candidate,
+                        "url",
+                        "",
+                    ),
+                }
+
+            handle.write(
+                json.dumps(
+                    data,
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+
+    # ------------------------------------------------------------
+    # АЛЬТЕРНАТИВЫ
+    # ------------------------------------------------------------
+
+    with (
+        output_dir
+        / "alternatives.jsonl"
+    ).open(
+        "w",
+        encoding="utf-8",
+    ) as handle:
+
+        for candidate in alternative_candidates:
+
+            data = asdict(
+                candidate
+            ) if hasattr(
+                candidate,
+                "__dataclass_fields__",
+            ) else {
+                "name": getattr(
+                    candidate,
+                    "name",
+                    "",
+                ),
+                "url": getattr(
+                    candidate,
+                    "url",
+                    "",
+                ),
+            }
+
+            handle.write(
+                json.dumps(
+                    data,
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+
+    # ------------------------------------------------------------
+    # DIAGNOSTICS
+    # ------------------------------------------------------------
+
+    diagnostics_path = (
+        output_dir
+        / "diagnostics.jsonl"
+    )
+
+    with diagnostics_path.open(
+        "w",
+        encoding="utf-8",
+    ) as handle:
+
+        for candidate in candidates:
+
+            data = {
+                "time": report_timestamp(),
+
+                "name": getattr(
+                    candidate,
+                    "name",
+                    "",
+                ),
+
+                "url": getattr(
+                    candidate,
+                    "url",
+                    "",
+                ),
+
+                "status": getattr(
+                    candidate,
+                    "check_status",
+                    "",
+                ),
+
+                "reason": getattr(
+                    candidate,
+                    "check_reason",
+                    "",
+                ),
+
+                "http_status": getattr(
+                    candidate,
+                    "http_status",
+                    0,
+                ),
+
+                "content_type": getattr(
+                    candidate,
+                    "content_type",
+                    "",
+                ),
+
+                "video_ok": getattr(
+                    candidate,
+                    "video_ok",
+                    False,
+                ),
+
+                "audio_ok": getattr(
+                    candidate,
+                    "audio_ok",
+                    False,
+                ),
+
+                "hls_ok": getattr(
+                    candidate,
+                    "hls_ok",
+                    False,
+                ),
+
+                "multitrack": getattr(
+                    candidate,
+                    "multitrack",
+                    False,
+                ),
+
+                "alternative_found": getattr(
+                    candidate,
+                    "alternative_found",
+                    False,
+                ),
+            }
+
+            handle.write(
+                json.dumps(
+                    data,
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+
+    # ------------------------------------------------------------
+    # ТЕКСТОВЫЕ СПИСКИ
+    # ------------------------------------------------------------
+
+    write_text_file(
+        output_dir / "streams.txt",
+        "\n".join(
+            getattr(
+                record,
+                "url",
+                "",
+            )
+            for record in final_records
+            if getattr(
+                record,
+                "url",
+                "",
+            )
+        ),
+    )
+
+    write_text_file(
+        output_dir / "working_streams.txt",
+        "\n".join(
+            getattr(
+                candidate,
+                "url",
+                "",
+            )
+            for candidate in working_candidates
+            if getattr(
+                candidate,
+                "url",
+                "",
+            )
+        ),
+    )
+
+    write_text_file(
+        output_dir / "failed_streams.txt",
+        "\n".join(
+            getattr(
+                candidate,
+                "url",
+                "",
+            )
+            for candidate in failed_candidates
+            if getattr(
+                candidate,
+                "url",
+                "",
+            )
+        ),
+    )
+
+    write_text_file(
+        output_dir / "archive.txt",
+        "\n".join(
+            getattr(
+                candidate,
+                "url",
+                "",
+            )
+            for candidate in archive_candidates
+            if getattr(
+                candidate,
+                "url",
+                "",
+            )
+        ),
+    )
+
+    write_text_file(
+        output_dir / "multitrack.txt",
+        "\n".join(
+            getattr(
+                candidate,
+                "url",
+                "",
+            )
+            for candidate in multitrack_candidates
+            if getattr(
+                candidate,
+                "url",
+                "",
+            )
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # РЕГИОНАЛЬНЫЕ TXT
+    # ------------------------------------------------------------
+
+    for region, records in regional_records.items():
+
+        write_text_file(
+            output_dir
+            / f"{region}.txt",
+
+            "\n".join(
+                getattr(
+                    candidate,
+                    "url",
+                    "",
+                )
+                for candidate in records
+                if getattr(
+                    candidate,
+                    "url",
+                    "",
+                )
+            ),
+        )
+
+    # ------------------------------------------------------------
+    # SKALA/DREG РАБОЧИЕ
+    # ------------------------------------------------------------
+
+    working_lines = []
+
+    working_lines.append(
+        skala_header(
+            "РАБОЧИЕ ПОТОКИ"
+        )
+    )
+
+    for candidate in working_candidates:
+
+        working_lines.append(
+            f"Канал: "
+            f"{getattr(candidate, 'name', '')}"
+        )
+
+        working_lines.append(
+            f"URL: "
+            f"{getattr(candidate, 'url', '')}"
+        )
+
+        working_lines.append(
+            "Статус: РАБОТАЕТ"
+        )
+
+        working_lines.append(
+            f"Видео: "
+            f"{'ДА' if getattr(candidate, 'video_ok', False) else 'НЕТ'}"
+        )
+
+        working_lines.append(
+            f"Аудио: "
+            f"{'ДА' if getattr(candidate, 'audio_ok', False) else 'НЕТ'}"
+        )
+
+        working_lines.append(
+            f"Мультитрек: "
+            f"{'ДА' if getattr(candidate, 'multitrack', False) else 'НЕТ'}"
+        )
+
+        working_lines.append(
+            "-" * 78
+        )
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_WORKING.txt",
+        "\n".join(
+            working_lines
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # SKALA/DREG FAILED
+    # ------------------------------------------------------------
+
+    failed_lines = []
+
+    failed_lines.append(
+        skala_header(
+            "НЕРАБОТАЮЩИЕ ПОТОКИ"
+        )
+    )
+
+    for candidate in failed_candidates:
+
+        status = getattr(
+            candidate,
+            "check_status",
+            "FAILED",
+        )
+
+        error = getattr(
+            candidate,
+            "check_reason",
+            "",
+        )
+
+        http_status = getattr(
+            candidate,
+            "http_status",
+            0,
+        )
+
+        failed_lines.append(
+            f"Канал: "
+            f"{getattr(candidate, 'name', '')}"
+        )
+
+        failed_lines.append(
+            f"URL: "
+            f"{getattr(candidate, 'url', '')}"
+        )
+
+        failed_lines.append(
+            "Статус: НЕ РАБОТАЕТ"
+        )
+
+        failed_lines.append(
+            "Причина: "
+            + russian_failure_reason(
+                status,
+                error,
+                http_status,
+            )
+        )
+
+        failed_lines.append(
+            f"HTTP: {http_status or 'нет ответа'}"
+        )
+
+        failed_lines.append(
+            f"Content-Type: "
+            f"{getattr(candidate, 'content_type', '')}"
+        )
+
+        failed_lines.append(
+            "-" * 78
+        )
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_FAILED.txt",
+        "\n".join(
+            failed_lines
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # ALTERNATIVES
+    # ------------------------------------------------------------
+
+    alternative_lines = []
+
+    alternative_lines.append(
+        skala_header(
+            "ЗАМЕНА НЕРАБОЧИХ ПОТОКОВ"
+        )
+    )
+
+    for candidate in alternative_candidates:
+
+        alternative_lines.append(
+            f"Канал: "
+            f"{getattr(candidate, 'name', '')}"
+        )
+
+        alternative_lines.append(
+            f"Новый URL: "
+            f"{getattr(candidate, 'url', '')}"
+        )
+
+        alternative_lines.append(
+            f"Старый URL: "
+            f"{getattr(candidate, 'alternative_for', '')}"
+        )
+
+        alternative_lines.append(
+            "Результат: "
+            "РАБОЧАЯ АЛЬТЕРНАТИВА НАЙДЕНА"
+        )
+
+        alternative_lines.append(
+            "-" * 78
+        )
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_ALTERNATIVES.txt",
+        "\n".join(
+            alternative_lines
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # ARCHIVE
+    # ------------------------------------------------------------
+
+    archive_lines = []
+
+    archive_lines.append(
+        skala_header(
+            "АРХИВ / TIMESHIFT / RECORDING"
+        )
+    )
+
+    archive_lines.append(
+        "ВАЖНО:"
+    )
+
+    archive_lines.append(
+        "Наличие M3U/M3U8 само по себе "
+        "не создаёт DVR."
+    )
+
+    archive_lines.append(
+        "Функции архива, записи, перемотки "
+        "и стабильной паузы требуют поддержки "
+        "источника или DVR backend."
+    )
+
+    archive_lines.append("")
+
+    for candidate in archive_candidates:
+
+        archive_lines.append(
+            f"Канал: "
+            f"{getattr(candidate, 'name', '')}"
+        )
+
+        archive_lines.append(
+            f"URL: "
+            f"{getattr(candidate, 'url', '')}"
+        )
+
+        archive_lines.append(
+            f"Архив: "
+            f"{'ДА' if getattr(candidate, 'archive_supported', False) else 'НЕТ'}"
+        )
+
+        archive_lines.append(
+            f"Запись: "
+            f"{'ДА' if getattr(candidate, 'recording_supported', False) else 'НЕТ'}"
+        )
+
+        archive_lines.append(
+            f"Перемотка: "
+            f"{'ДА' if getattr(candidate, 'timeshift_supported', False) else 'НЕТ'}"
+        )
+
+        archive_lines.append(
+            f"Пауза: "
+            f"{'ДА' if getattr(candidate, 'pause_supported', False) else 'НЕТ'}"
+        )
+
+        archive_lines.append(
+            "-" * 78
+        )
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_ARCHIVE.txt",
+        "\n".join(
+            archive_lines
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # MULTITRACK
+    # ------------------------------------------------------------
+
+    multitrack_lines = []
+
+    multitrack_lines.append(
+        skala_header(
+            "МУЛЬТИДОРОЖКОВЫЕ ПОТОКИ"
+        )
+    )
+
+    for candidate in multitrack_candidates:
+
+        multitrack_lines.append(
+            f"Канал: "
+            f"{getattr(candidate, 'name', '')}"
+        )
+
+        multitrack_lines.append(
+            f"URL: "
+            f"{getattr(candidate, 'url', '')}"
+        )
+
+        multitrack_lines.append(
+            "Мультитрек: ДА"
+        )
+
+        multitrack_lines.append(
+            "-" * 78
+        )
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_MULTITRACK.txt",
+        "\n".join(
+            multitrack_lines
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # DIAGNOSTICS
+    # ------------------------------------------------------------
+
+    diagnostics_lines = []
+
+    diagnostics_lines.append(
+        skala_header(
+            "ПОЛНАЯ ДИАГНОСТИКА"
+        )
+    )
+
+    for candidate in candidates:
+
+        diagnostics_lines.append(
+            f"Канал: "
+            f"{getattr(candidate, 'name', '')}"
+        )
+
+        diagnostics_lines.append(
+            f"URL: "
+            f"{getattr(candidate, 'url', '')}"
+        )
+
+        diagnostics_lines.append(
+            f"Статус: "
+            f"{getattr(candidate, 'check_status', '')}"
+        )
+
+        diagnostics_lines.append(
+            "Причина: "
+            + russian_failure_reason(
+                getattr(
+                    candidate,
+                    "check_status",
+                    "",
+                ),
+                getattr(
+                    candidate,
+                    "check_reason",
+                    "",
+                ),
+                getattr(
+                    candidate,
+                    "http_status",
+                    0,
+                ),
+            )
+        )
+
+        diagnostics_lines.append(
+            f"HTTP: "
+            f"{getattr(candidate, 'http_status', 0)}"
+        )
+
+        diagnostics_lines.append(
+            f"HLS: "
+            f"{'ДА' if getattr(candidate, 'hls_ok', False) else 'НЕТ'}"
+        )
+
+        diagnostics_lines.append(
+            f"Видео: "
+            f"{'ДА' if getattr(candidate, 'video_ok', False) else 'НЕТ'}"
+        )
+
+        diagnostics_lines.append(
+            f"Аудио: "
+            f"{'ДА' if getattr(candidate, 'audio_ok', False) else 'НЕТ'}"
+        )
+
+        diagnostics_lines.append(
+            f"Мультитрек: "
+            f"{'ДА' if getattr(candidate, 'multitrack', False) else 'НЕТ'}"
+        )
+
+        diagnostics_lines.append(
+            f"Альтернатива: "
+            f"{'ДА' if getattr(candidate, 'alternative_found', False) else 'НЕТ'}"
+        )
+
+        diagnostics_lines.append(
+            "-" * 78
+        )
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_DIAGNOSTICS.txt",
+        "\n".join(
+            diagnostics_lines
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # ПОЛНЫЕ ФАЙЛЫ ПО ОШИБКАМ
+    # ------------------------------------------------------------
+
+    http_errors = []
+    hls_errors = []
+    timeout_errors = []
+
+    for candidate in failed_candidates:
+
+        status = str(
+            getattr(
+                candidate,
+                "check_status",
+                "",
+            )
+        ).upper()
+
+        error = str(
+            getattr(
+                candidate,
+                "check_reason",
+                "",
+            )
+        )
+
+        line = (
+            f"Канал: "
+            f"{getattr(candidate, 'name', '')}\n"
+            f"URL: "
+            f"{getattr(candidate, 'url', '')}\n"
+            f"Причина: "
+            f"{russian_failure_reason(status, error, getattr(candidate, 'http_status', 0))}\n"
+            + "-" * 78
+        )
+
+        http_status = getattr(
+            candidate,
+            "http_status",
+            0,
+        )
+
+        if http_status >= 400:
+
+            http_errors.append(
+                line
+            )
+
+        if (
+            "HLS" in status
+            or "HLS" in error.upper()
+            or "SEGMENT" in status
+        ):
+
+            hls_errors.append(
+                line
+            )
+
+        if "TIMEOUT" in error.upper():
+
+            timeout_errors.append(
+                line
+            )
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_HTTP_ERRORS.txt",
+        "\n".join(
+            http_errors
+        ),
+    )
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_HLS_ERRORS.txt",
+        "\n".join(
+            hls_errors
+        ),
+    )
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_TIMEOUTS.txt",
+        "\n".join(
+            timeout_errors
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # SOURCE ERRORS
+    # ------------------------------------------------------------
+
+    source_errors = []
+
+    for candidate in failed_candidates:
+
+        source_errors.append(
+            "\n".join(
+                [
+                    f"Канал: {getattr(candidate, 'name', '')}",
+                    f"URL: {getattr(candidate, 'url', '')}",
+                    f"Источник: {getattr(candidate, 'source_page', '')}",
+                    f"Пост: {getattr(candidate, 'source_post', '')}",
+                    f"Причина: {getattr(candidate, 'check_reason', '')}",
+                    "-" * 78,
+                ]
+            )
+        )
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_SOURCE_ERRORS.txt",
+        "\n".join(
+            source_errors
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # SOURCES
+    # ------------------------------------------------------------
+
+    source_lines = []
+
+    source_lines.append(
+        "SKALA / DREG — ИСТОЧНИКИ"
+    )
+
+    source_lines.append(
+        "=" * 78
+    )
+
+    source_lines.append(
+        f"VK: "
+        f"{getattr(collector, 'page_url', '')}"
+    )
+
+    source_lines.append("")
+
+    for candidate in candidates:
+
+        source_lines.append(
+            f"{getattr(candidate, 'url', '')} | "
+            f"{getattr(candidate, 'source_page', '')} | "
+            f"{getattr(candidate, 'source_post', '')}"
+        )
+
+    write_text_file(
+        output_dir
+        / "sources.txt",
+        "\n".join(
+            source_lines
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # SOURCE STATISTICS
+    # ------------------------------------------------------------
+
+    source_statistics = {}
+
+    for candidate in candidates:
+
+        source = (
+            getattr(
+                candidate,
+                "source_page",
+                "",
+            )
+            or "unknown"
+        )
+
+        if source not in source_statistics:
+
+            source_statistics[source] = {
+                "total": 0,
+                "working": 0,
+                "failed": 0,
+            }
+
+        source_statistics[
+            source
+        ]["total"] += 1
+
+        status = str(
+            getattr(
+                candidate,
+                "check_status",
+                "",
+            )
+        ).upper()
+
+        if status == "WORKING":
+
+            source_statistics[
+                source
+            ]["working"] += 1
+
+        if status == "FAILED":
+
+            source_statistics[
+                source
+            ]["failed"] += 1
+
+    with (
+        output_dir
+        / "source_statistics.json"
+    ).open(
+        "w",
+        encoding="utf-8",
+    ) as handle:
+
+        json.dump(
+            source_statistics,
+            handle,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+    # ------------------------------------------------------------
+    # REPLACED
+    # ------------------------------------------------------------
+
+    replaced_lines = []
+
+    for candidate in alternative_candidates:
+
+        replaced_lines.append(
+            "\n".join(
+                [
+                    "КАНАЛ ЗАМЕНЁН",
+                    f"Название: {getattr(candidate, 'name', '')}",
+                    f"Старый URL: {getattr(candidate, 'alternative_for', '')}",
+                    f"Новый URL: {getattr(candidate, 'url', '')}",
+                    "Результат: РАБОТАЕТ",
+                    "=" * 78,
+                ]
+            )
+        )
+
+    write_text_file(
+        output_dir
+        / "SKALA_DREG_REPLACED.txt",
+        "\n".join(
+            replaced_lines
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # КОНТРОЛЬ
+    # ------------------------------------------------------------
+
+    write_final_statistics(
+        output_dir,
+        collector,
+    )
+
+    write_full_skala_report(
+        output_dir,
+        collector,
+    )
+
+    verification = (
+        verify_output_files(
+            output_dir
+        )
+    )
+
+    write_output_control(
+        output_dir,
+        verification,
+    )
+
+    LOG.info(
+        "============================================================"
+    )
+
+    LOG.info(
+        "SKALA/DREG FINALIZATION FINISHED"
+    )
+
+    LOG.info(
+        "Ожидалось файлов: %d",
+        len(
+            verification[
+                "expected"
+            ]
+        ),
+    )
+
+    LOG.info(
+        "Создано файлов: %d",
+        len(
+            verification[
+                "present"
+            ]
+        ),
+    )
+
+    LOG.info(
+        "Отсутствует файлов: %d",
+        len(
+            verification[
+                "missing"
+            ]
+        ),
+    )
+
+    LOG.info(
+        "Пустых файлов: %d",
+        len(
+            verification[
+                "empty"
+            ]
+        ),
+    )
+
+    LOG.info(
+        "============================================================"
+    )
+
+
+# ============================================================================
+# ПАТЧ RUN
+# ============================================================================
+
+def run_full_skala_pipeline(
+    collector,
+) -> None:
+
+    LOG.info(
+        "============================================================"
+    )
+
+    LOG.info(
+        "ЗАПУСК ПОЛНОГО SKALA/DREG PIPELINE"
+    )
+
+    LOG.info(
+        "============================================================"
+    )
+
+    # ------------------------------------------------------------
+    # 1. ОСНОВНОЙ СБОР
+    # ------------------------------------------------------------
+
+    collector.crawl_group()
+
+    # ------------------------------------------------------------
+    # 2. Если расширенные структуры существуют,
+    #    выполняем постобработку.
+    # ------------------------------------------------------------
+
+    if hasattr(
+        collector,
+        "build_candidates",
+    ):
+
+        LOG.info(
+            "BUILD CANDIDATES"
+        )
+
+        collector.build_candidates()
+
+    # ------------------------------------------------------------
+    # 3. Проверка потоков
+    # ------------------------------------------------------------
+
+    if hasattr(
+        collector,
+        "check_all_candidates",
+    ):
+
+        LOG.info(
+            "CHECK ALL STREAM CANDIDATES"
+        )
+
+        collector.check_all_candidates()
+
+    # ------------------------------------------------------------
+    # 4. Поиск альтернатив
+    # ------------------------------------------------------------
+
+    if hasattr(
+        collector,
+        "replace_failed_streams",
+    ):
+
+        LOG.info(
+            "SEARCH ALTERNATIVES / REPLACEMENT"
+        )
+
+        collector.replace_failed_streams()
+
+    # ------------------------------------------------------------
+    # 5. Сохраняем старую структуру,
+    #    чтобы не ломать существующие GitHub Actions.
+    # ------------------------------------------------------------
+
+    collector.save()
+
+    # ------------------------------------------------------------
+    # 6. Создаём новые SKALA/DREG файлы.
+    # ------------------------------------------------------------
+
+    finalize_skala_output(
+        collector
+    )
+
+    LOG.info(
+        "============================================================"
+    )
+
+    LOG.info(
+        "ПОЛНЫЙ PIPELINE ЗАВЕРШЁН"
+    )
+
+    LOG.info(
+        "============================================================"
+    )
+
+
+# ============================================================================
+# ФИНАЛЬНЫЙ MAIN
+# ============================================================================
+
+def skala_main() -> int:
+
+    args = parse_args()
+
+    if args.max_pages < 1:
+
+        print(
+            "--max-pages must be >= 1",
+            file=sys.stderr,
+        )
+
+        return 2
+
+    if args.max_playlist_depth < 0:
+
+        print(
+            "--max-playlist-depth must be >= 0",
+            file=sys.stderr,
+        )
+
+        return 2
+
+    output_dir = Path(
+        args.output
+    )
+
+    setup_logging(
+        output_dir,
+        verbose=args.verbose,
+    )
+
+    ensure_output_structure(
+        output_dir
+    )
+
+    collector = Collector(
+        page_url=args.url,
+        output_dir=output_dir,
+        max_pages=args.max_pages,
+        max_playlist_depth=args.max_playlist_depth,
+    )
+
+    try:
+
+        run_full_skala_pipeline(
+            collector
+        )
+
+        return 0
+
+    except KeyboardInterrupt:
+
+        LOG.warning(
+            "Программа остановлена пользователем."
+        )
+
+        try:
+
+            finalize_skala_output(
+                collector
+            )
+
+        except Exception:
+
+            LOG.exception(
+                "Ошибка финализации после остановки."
+            )
+
+        return 130
+
+    except Exception:
+
+        LOG.exception(
+            "КРИТИЧЕСКАЯ ОШИБКА SKALA/DREG."
+        )
+
+        try:
+
+            finalize_skala_output(
+                collector
+            )
+
+        except Exception:
+
+            LOG.exception(
+                "Не удалось выполнить аварийную финализацию."
+            )
+
+        return 1
+
+
+# ============================================================================
+# ТОЧКА ВХОДА
+# ============================================================================
+
+if __name__ == "__main__":
+
+    raise SystemExit(
+        skala_main()
+    )
