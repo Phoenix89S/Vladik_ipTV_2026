@@ -22,7 +22,7 @@ jobs:
       # 1. CHECKOUT
       # ============================================================
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -30,10 +30,9 @@ jobs:
       # 2. PYTHON
       # ============================================================
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
 
       # ============================================================
       # 3. INSTALL DEPENDENCIES
@@ -44,20 +43,16 @@ jobs:
           pip install requests
 
       # ============================================================
-      # 4. DOWNLOAD EXACT SCRIPT FROM REPOSITORY
+      # 4. DOWNLOAD EXACT SCRIPT
       # ============================================================
-      - name: Download VK IPTV collector
+      - name: Download VK_IPTV_M3U_COLLECTOR.py
         run: |
           curl -fL \
             "https://raw.githubusercontent.com/Phoenix89S/Vladik_ipTV_2026/main/VK_IPTV_M3U_COLLECTOR.py" \
             -o VK_IPTV_M3U_COLLECTOR.py
 
-          echo "=== SCRIPT CHECK ==="
-          ls -lh VK_IPTV_M3U_COLLECTOR.py
-          head -n 10 VK_IPTV_M3U_COLLECTOR.py
-
       # ============================================================
-      # 5. RUN COLLECTOR
+      # 5. RUN SCRIPT
       # ============================================================
       - name: Run VK IPTV M3U Collector
         run: |
@@ -66,7 +61,7 @@ jobs:
       # ============================================================
       # 6. SHOW RESULTS
       # ============================================================
-      - name: Show collector results
+      - name: Show results
         if: always()
         run: |
           echo "========================================"
@@ -74,40 +69,14 @@ jobs:
           echo "========================================"
 
           if [ -d "vk_iptv_output" ]; then
-            find vk_iptv_output -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
+            find vk_iptv_output -maxdepth 1 -type f -print
           else
-            echo "ERROR: vk_iptv_output directory not found"
-            exit 1
+            echo "vk_iptv_output directory not found"
           fi
 
       # ============================================================
-      # 7. GIT STATUS
+      # 7. COMMIT
       # ============================================================
-      - name: Check Git changes
+      - name: Commit results
         run: |
-          git status --short
-
-      # ============================================================
-      # 8. COMMIT RESULTS
-      # ============================================================
-      - name: Commit collector results
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add VK_IPTV_M3U_COLLECTOR.py
-          git add vk_iptv_output/
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-
-          git commit -m "Update VK IPTV collector results"
-
-      # ============================================================
-      # 9. PUSH TO REPOSITORY
-      # ============================================================
-      - name: Push results
-        run: |
-          git push
+          git config user.name "
