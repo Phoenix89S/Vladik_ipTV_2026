@@ -73,12 +73,12 @@ from urllib.parse import urljoin, urlparse
 import aiohttp
 
 
-VERSION = "5.0"
+VERSION = "5.2-KZ-MONITOR"
 
 DEFAULT_UA = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/140 Safari/537.36 "
-    "Ultra-IPTV-Checker/5.0"
+    "Ultra-IPTV-Checker/5.2-KZ-MONITOR"
 )
 
 GENERATED_NAMES = {
@@ -259,6 +259,11 @@ USER_PROVIDED_SOURCES = [
     'https://smolnp/IPTVru/gh-pages/KseniaTV.m3u',
     'https://tiny.one/qazaqiptv',
     'https://tiny.one/qazaqtv',
+    'https://gitverse.ru/api/repos/istyle/iptv/raw/branch/main/all_in_one.m3u',
+    'https://gitverse.ru/api/repos/mAreXx/IPTV/raw/branch/master/iptv-playlist.m3u',
+    'https://gitverse.ru/api/repos/iptvm3u/livem3u/raw/branch/master/smotrim.m3u',
+    'https://gitverse.ru/api/repos/iptvm3u/livem3u/raw/branch/master/russ.m3u',
+    'https://gitverse.ru/api/repos/iptvm3u/livem3u/raw/branch/master/zabava-full.m3u',
 ]
 
 VERIFIED_REAL_SOURCES = [
@@ -448,6 +453,190 @@ def endpoint_key(url: str) -> str:
         return url.lower()
 
 
+# ---------------------------------------------------------------------------
+# Kazakhstan operator/channel registry and source context
+# ---------------------------------------------------------------------------
+# IMPORTANT: source/operator country is NOT the same thing as channel country.
+# A Kazakhstan operator can carry KZ, RU and international channels.
+# Therefore KZ-context monitoring never filters by channel_country.
+# ---------------------------------------------------------------------------
+
+KZ_OPERATORS = {
+    "kazakhtelecom": {
+        "name": "Казахтелеком / TV+",
+        "country": "KZ",
+        "aliases": ("казахтелеком", "kazakhtelecom", "id tv", "idtv", "tv+", "tv plus", "tvplus"),
+    },
+    "almatv": {
+        "name": "AlmaTV / Alma+",
+        "country": "KZ",
+        "aliases": ("almatv", "alma tv", "alma+", "alma plus", "алма тв", "алма+"),
+    },
+    "beeline_kz": {
+        "name": "Beeline TV Kazakhstan / BeeTV",
+        "country": "KZ",
+        "aliases": ("beeline kz", "beeline tv", "beetv", "bee tv"),
+    },
+    "kcell": {
+        "name": "Kcell",
+        "country": "KZ",
+        "aliases": ("kcell", "kcell tv"),
+    },
+    "galam_tv": {
+        "name": "GALAM TV",
+        "country": "KZ",
+        "aliases": ("galam", "galam tv"),
+    },
+}
+
+KZ_CHANNEL_ALIASES = {
+    "qazaqstan": ("qazaqstan", "qazaqstan hd", "qazaqstan international", "казахстан"),
+    "khabar": ("хабар", "хабар hd", "khabar", "khabar hd"),
+    "khabar24": ("хабар 24", "хабар 24 hd", "khabar 24", "khabar24"),
+    "balapan": ("balapan", "balapan hd", "балапан"),
+    "jibek_joly": ("jibek joly", "jibek joly hd", "жибек жолы"),
+    "astana_tv": ("astana tv", "astana tv hd", "астана", "астана тв"),
+    "almaty_tv": ("almaty tv", "almaty tv hd", "алматы", "алматы тв"),
+    "ktk": ("ktk", "ktk hd", "ктк"),
+    "seven": ("7 канал", "7 канал hd", "седьмой канал", "seven", "7 channel"),
+    "ntk": ("ntk", "ntk hd", "нтк"),
+    "31_channel": ("31 канал", "31 канал hd", "31 channel", "31tv"),
+}
+
+KZ_SOURCE_MARKERS = (
+    ".kz", "kazakhstan", "kazakh", "qazaq", "almaty", "astana", "beeline.kz",
+    "kazakhtelecom", "almatv", "kcell", "galam",
+)
+
+RU_CHANNEL_MARKERS = (
+    "первый канал", "россия 1", "россия 24", "россия к", "нтв", "тнт",
+    "стс", "рен тв", "пятый канал", "звезда", "матч тв", "карусель",
+    "мир", "тв3", "пятница", "москва 24", "дождь", "rt", "rtr",
+)
+
+def registry_normalize(value: str) -> str:
+    value = (value or "").lower().replace("ё", "е")
+    value = re.sub(r"[_\-]+", " ", value)
+    value = re.sub(r"[^\w\s+#]+", " ", value, flags=re.UNICODE)
+    return re.sub(r"\s+", " ", value).strip()
+
+def detect_source_country(source: str) -> str:
+    raw = (source or "").lower()
+    value = registry_normalize(source)
+    return "KZ" if ".kz" in raw or any(marker in value for marker in KZ_SOURCE_MARKERS if marker != ".kz") else "UNK"
+
+def detect_kz_operator(name: str, group: str, tvg_id: str, source: str, host: str) -> tuple[str, float]:
+    value = registry_normalize(" ".join((name or "", group or "", tvg_id or "", source or "", host or "")))
+    for operator_id, info in KZ_OPERATORS.items():
+        for alias in info["aliases"]:
+            if registry_normalize(alias) in value:
+                return operator_id, 1.0
+    return "", 0.0
+
+def detect_channel_country(name: str, tvg_id: str, group: str) -> str:
+    value = registry_normalize(" ".join((name or "", tvg_id or "", group or "")))
+    if any(registry_normalize(alias) in value for aliases in KZ_CHANNEL_ALIASES.values() for alias in aliases):
+        return "KZ"
+    if any(marker in value for marker in RU_CHANNEL_MARKERS):
+        return "RU"
+    return "UNK"
+
+def enrich_record_context(record: "StreamRecord") -> None:
+    host = record.host or host_from_url(record.url)
+    record.host = host
+    record.source_country = detect_source_country(record.source)
+    operator_id, confidence = detect_kz_operator(
+        record.name, record.group, record.tvg_id, record.source, host
+    )
+    if operator_id:
+        record.operator = operator_id
+        record.operator_country = "KZ"
+        record.operator_confidence = confidence
+    elif record.operator_country not in ("KZ", "RU", "BY", "UA", "UNK"):
+        record.operator_country = "UNK"
+    record.channel_country = detect_channel_country(record.name, record.tvg_id, record.group)
+    base = registry_normalize(record.normalized_channel or record.name)
+    record.channel_id = f"{record.channel_country.lower()}:{base or 'unknown'}"
+
+def is_kz_context(record: "StreamRecord") -> bool:
+    return (
+        record.source_country == "KZ"
+        or record.operator_country == "KZ"
+        or record.operator in KZ_OPERATORS
+    )
+
+def write_kz_registry(output: Path, records: list["StreamRecord"]) -> None:
+    """Create KZ operator/channel/alias databases from ALL KZ-context records.
+
+    Russian and international channels found through a KZ operator remain in
+    the registry. No channel is dropped merely because channel_country != KZ.
+    """
+    root = output / "kz"
+    root.mkdir(parents=True, exist_ok=True)
+
+    operators: dict[str, dict[str, Any]] = {}
+    channels: dict[str, dict[str, Any]] = {}
+    monitor_records: list[StreamRecord] = []
+
+    for record in records:
+        enrich_record_context(record)
+        if not is_kz_context(record):
+            continue
+        monitor_records.append(record)
+
+        if record.operator in KZ_OPERATORS:
+            info = KZ_OPERATORS[record.operator]
+            operators[record.operator] = {
+                "operator_id": record.operator,
+                "name": info["name"],
+                "country": "KZ",
+                "aliases": list(info["aliases"]),
+            }
+
+        entry = channels.setdefault(record.channel_id, {
+            "channel_id": record.channel_id,
+            "canonical_name": record.normalized_channel or record.name,
+            "channel_country": record.channel_country,
+            "source_country": record.source_country,
+            "operator_country": record.operator_country,
+            "operators": [],
+            "aliases": set(),
+            "streams": 0,
+            "working_streams": 0,
+        })
+        if record.operator and record.operator not in entry["operators"]:
+            entry["operators"].append(record.operator)
+        for alias in (record.name, record.tvg_name, record.tvg_id):
+            if alias:
+                entry["aliases"].add(alias)
+        entry["streams"] += 1
+        if record.working:
+            entry["working_streams"] += 1
+
+    operator_list = sorted(operators.values(), key=lambda x: x["operator_id"])
+    channel_list = []
+    for entry in channels.values():
+        entry["aliases"] = sorted(entry["aliases"])
+        channel_list.append(entry)
+    channel_list.sort(key=lambda x: (x["channel_country"], x["canonical_name"]))
+
+    (root / "operators.json").write_text(
+        json.dumps(operator_list, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (root / "channels.json").write_text(
+        json.dumps(channel_list, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    with (root / "aliases.jsonl").open("w", encoding="utf-8") as f:
+        for entry in channel_list:
+            f.write(json.dumps({
+                "channel_id": entry["channel_id"],
+                "canonical_name": entry["canonical_name"],
+                "channel_country": entry["channel_country"],
+                "aliases": entry["aliases"],
+            }, ensure_ascii=False) + "\n")
+
+    write_m3u(root / "monitor.m3u", [r for r in monitor_records if r.working], "KZ SOURCE MONITOR — ALL CHANNEL COUNTRIES")
+
 def host_from_url(url: str) -> str:
     try:
         return urlparse(url).hostname or ""
@@ -500,6 +689,11 @@ class StreamRecord:
     region: str = "UNK"
     host: str = ""
     operator: str = ""
+    operator_country: str = "UNK"
+    operator_confidence: float = 0.0
+    source_country: str = "UNK"
+    channel_country: str = "UNK"
+    channel_id: str = ""
     cdn_node: str = ""
     asn: str = ""
 
@@ -572,7 +766,9 @@ class Archive:
             with self.records_path.open("r", encoding="utf-8") as f:
                 for line in f:
                     try:
-                        self.records.append(StreamRecord(**json.loads(line)))
+                        record = StreamRecord(**json.loads(line))
+                        enrich_record_context(record)
+                        self.records.append(record)
                     except Exception:
                         continue
 
@@ -694,6 +890,7 @@ class SourceLoader:
                 quality=quality_variant(name),
                 special=is_special_channel(name),
             )
+            enrich_record_context(r)
             records.append(r)
             rid += 1
 
@@ -716,6 +913,7 @@ class SourceLoader:
                         normalized_channel="unknown",
                         special=False,
                     ))
+                    enrich_record_context(records[-1])
                     rid += 1
 
         return records
@@ -1391,6 +1589,11 @@ def db_connect(db_path: Path) -> sqlite3.Connection:
             region TEXT,
             host TEXT,
             operator TEXT,
+            operator_country TEXT,
+            operator_confidence REAL,
+            source_country TEXT,
+            channel_country TEXT,
+            channel_id TEXT,
             cdn_node TEXT,
             asn TEXT,
             orbit TEXT,
@@ -1470,6 +1673,19 @@ def db_connect(db_path: Path) -> sqlite3.Connection:
             label TEXT
         )
     """)
+    # Schema migration for an existing append-only database.
+    existing_columns = {row[1] for row in conn.execute("PRAGMA table_info(streams)")}
+    migrations = {
+        "operator_country": "ALTER TABLE streams ADD COLUMN operator_country TEXT",
+        "operator_confidence": "ALTER TABLE streams ADD COLUMN operator_confidence REAL DEFAULT 0",
+        "source_country": "ALTER TABLE streams ADD COLUMN source_country TEXT",
+        "channel_country": "ALTER TABLE streams ADD COLUMN channel_country TEXT",
+        "channel_id": "ALTER TABLE streams ADD COLUMN channel_id TEXT",
+    }
+    for column, statement in migrations.items():
+        if column not in existing_columns:
+            conn.execute(statement)
+
     conn.commit()
     return conn
 
@@ -1485,20 +1701,22 @@ def db_insert_records(conn: sqlite3.Connection, records: list[StreamRecord]) -> 
             r.content_type, r.protocol, r.resolution, r.width, r.height,
             r.bitrate_kbps, r.codec, int(r.has_audio), int(r.has_video),
             int(r.is_live), int(r.is_vod), int(r.archive_supported), r.error,
-            r.region, r.host, r.operator, r.cdn_node, r.asn, r.orbit,
+            r.region, r.host, r.operator, r.operator_country, r.operator_confidence,
+            r.source_country, r.channel_country, r.channel_id, r.cdn_node, r.asn, r.orbit,
             r.quality, int(r.special), r.alternative_of, r.alternative_rank,
             r.similarity, score(r)
         ))
-    conn.executemany("""
+    placeholders = ",".join("?" for _ in rows[0]) if rows else ""
+    conn.executemany(f"""
         INSERT OR IGNORE INTO streams (
             record_id,name,normalized_channel,url,url_hash,group_title,tvg_id,
             tvg_name,logo,source,source_type,discovered_pass,discovered_at,
             working,status_code,latency_ms,final_url,content_type,protocol,
             resolution,width,height,bitrate_kbps,codec,has_audio,has_video,
-            is_live,is_vod,archive_supported,error,region,host,operator,
-            cdn_node,asn,orbit,quality,special,alternative_of,
-            alternative_rank,similarity,score
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            is_live,is_vod,archive_supported,error,region,host,operator,operator_country,
+            operator_confidence,source_country,channel_country,channel_id,cdn_node,asn,orbit,
+            quality,special,alternative_of,alternative_rank,similarity,score
+        ) VALUES ({placeholders})
     """, rows)
     conn.commit()
 
@@ -1840,6 +2058,12 @@ async def main_async(args: argparse.Namespace) -> int:
 
         records = archive.records
 
+        # KZ monitoring is a context view over the COMPLETE archive.
+        # It intentionally keeps RU and international channels found through KZ sources/operators.
+        for record in records:
+            enrich_record_context(record)
+        write_kz_registry(output, records)
+
         # Outputs are views. They may be overwritten; the archive never is.
         working = [r for r in records if r.working]
         all_records = list(records)
@@ -1898,12 +2122,16 @@ async def main_async(args: argparse.Namespace) -> int:
     print("output_iptv/M3U.JSON — ML-readable feature dataset")
     print("output_iptv/Vladik_llm.ml — накопительная статистическая ML-модель")
     print("output_iptv/telemetry/telemetry.jsonl — полная телеметрия проходов")
+    print("kz/operators.json    — база операторов Казахстана")
+    print("kz/channels.json    — все каналы из KZ-контекста, включая RU/INT")
+    print("kz/aliases.jsonl    — накопленная база алиасов")
+    print("kz/monitor.m3u      — рабочие потоки всех каналов из KZ-контекста")
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="Ultra IPTV Checker 5.0 — append-only channel and stream archive"
+        description="Ultra IPTV Checker 5.2-KZ-MONITOR — append-only channel and stream archive"
     )
     p.add_argument("-s", "--source", action="append", default=[],
                    help="M3U/TXT file or HTTP(S) playlist. Repeatable.")
