@@ -2,7 +2,6 @@ name: VK IPTV M3U Collector
 
 on:
   workflow_dispatch:
-
   schedule:
     - cron: "0 3 * * *"
 
@@ -75,8 +74,11 @@ jobs:
           fi
 
       # ============================================================
-      # 7. COMMIT
+      # 7. COMMIT & PUSH RESULTS
       # ============================================================
       - name: Commit results
         run: |
-          git config user.name "
+          git config user.name "VK-IPTV-Bot"
+          git config user.email "actions@github.com"
+
+          git add vk_iptv_output || true
