@@ -9,7 +9,7 @@ on:
 jobs:
   run_checker:
     runs-on: ubuntu-latest
-    
+
     env:
       ULTRA_OUTPUT_DIR: ${{ github.workspace }}/ultra_archive
       FFPROBE_BIN: /usr/bin/ffprobe
@@ -19,24 +19,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Устанавливаем Python и зависимости (аналог setup_dependencies)
+      # 2. Устанавливаем Python (без pip cache — requirements.txt в репо не обязателен)
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
-      
+          # cache: 'pip'  — отключено, чтобы не требовать requirements.txt / pyproject.toml
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg wget gnupg
-      
+
       - name: Install Python requirements
         run: |
           pip install --upgrade pip
           pip install aiohttp tqdm
 
-      # 3. Запуск самого чекера (аналог run_iptv_checker)
+      # 3. Запуск самого чекера
       - name: Run IPTV Checker
         id: check
         run: |
@@ -47,8 +47,8 @@ jobs:
             --workers 32 \
             --timeout 15 \
             --output "$OUTPUT"
-        
-      # 4. Загрузка результатов в S3 (аналог publish_to_s3)
+
+      # 4. AWS credentials
       - name: Upload to S3
         if: success()
         uses: aws-actions/configure-aws-credentials@v4
@@ -56,8 +56,9 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-          
+
       - name: Sync artifacts
+        if: success()
         run: |
-          aws s3 sync "${{ env.ULTRA_OUTPUT_DIR }}/output_iptv/" "s3://my-iptv-backups/${{ github.sha }}/" --storage-class DEEP_ARCHIVE
+          aws s3 sync "\( {{ env.ULTRA_OUTPUT_DIR }}/output_iptv/" "s3://my-iptv-backups/ \){{ github.sha }}/" --storage-class DEEP_ARCHIVE
           aws s3 cp "${{ env.ULTRA_OUTPUT_DIR }}/best.m3u" "s3://my-iptv-live-proxy/latest_best.m3u"
