@@ -1,0 +1,454 @@
+name: Cinerama Scala Graph Processor Verificator
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "0 3 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cinerama-scala-verificator
+  cancel-in-progress: false
+
+jobs:
+
+  cinerama-verification:
+
+    name: Cinerama HLS Verification
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 120
+
+    steps:
+
+      # ============================================================
+      # 1. CHECKOUT MAIN
+      # ============================================================
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      # ============================================================
+      # 2. PYTHON
+      # ============================================================
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # ============================================================
+      # 3. DOWNLOAD ACTUAL PYTHON FROM MAIN
+      # ============================================================
+      #
+      # Используем именно тот файл, который указан пользователем:
+      #
+      # https://raw.githubusercontent.com/Phoenix89S/IpTV_playlist_2026Ru/main/CINERAMA_SCALA_GRAPH_PROCESSOR_verificator.py
+      #
+      # ============================================================
+
+      - name: Download Cinerama verifier
+        shell: bash
+        run: |
+          set -e
+
+          echo "============================================================"
+          echo "DOWNLOAD CINERAMA VERIFIER"
+          echo "============================================================"
+
+          PYTHON_URL="https://raw.githubusercontent.com/Phoenix89S/IpTV_playlist_2026Ru/main/CINERAMA_SCALA_GRAPH_PROCESSOR_verificator.py"
+
+          echo "Source:"
+          echo "$PYTHON_URL"
+
+          curl \
+            --fail \
+            --location \
+            --retry 5 \
+            --retry-delay 3 \
+            --connect-timeout 20 \
+            --max-time 120 \
+            "$PYTHON_URL" \
+            -o CINERAMA_SCALA_GRAPH_PROCESSOR_verificator.py
+
+          echo
+          echo "Downloaded verifier:"
+          ls -lh CINERAMA_SCALA_GRAPH_PROCESSOR_verificator.py
+
+          echo
+          echo "Python syntax check:"
+
+          python3 -m py_compile \
+            CINERAMA_SCALA_GRAPH_PROCESSOR_verificator.py
+
+          echo "Python syntax: OK"
+
+      # ============================================================
+      # 4. DOWNLOAD SOURCE M3U FROM GH-PAGES
+      # ============================================================
+      #
+      # Реальный источник:
+      #
+      # gh-pages/Extra_channels2026.m3u
+      #
+      # ============================================================
+
+      - name: Download source M3U from gh-pages
+        shell: bash
+        run: |
+          set -e
+
+          echo "============================================================"
+          echo "DOWNLOAD SOURCE M3U FROM GH-PAGES"
+          echo "============================================================"
+
+          SOURCE_URL="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/gh-pages/Extra_channels2026.m3u"
+
+          echo "Source:"
+          echo "$SOURCE_URL"
+
+          curl \
+            --fail \
+            --location \
+            --retry 5 \
+            --retry-delay 3 \
+            --connect-timeout 20 \
+            --max-time 180 \
+            "$SOURCE_URL" \
+            -o Extra_channels2026.m3u
+
+          echo
+          echo "Downloaded source playlist:"
+          ls -lh Extra_channels2026.m3u
+
+          echo
+          echo "M3U header:"
+          head -n 5 Extra_channels2026.m3u
+
+          echo
+          echo "HTTP/HTTPS URLs found:"
+
+          grep -cE '^https?://' \
+            Extra_channels2026.m3u \
+            || true
+
+      # ============================================================
+      # 5. ПРОВЕРКА, ЧТО PYTHON ДЕЙСТВИТЕЛЬНО НОВЫЙ
+      # ============================================================
+      #
+      # Защита от ситуации, когда в main снова попадёт старая
+      # версия с sample_m3u.
+      #
+      # ============================================================
+
+      - name: Validate verifier mode
+        shell: bash
+        run: |
+          set -e
+
+          echo "============================================================"
+          echo "VALIDATE VERIFIER"
+          echo "============================================================"
+
+          if grep -q "sample_m3u" \
+            CINERAMA_SCALA_GRAPH_PROCESSOR_verificator.py
+          then
+            echo
+            echo "ERROR:"
+            echo "The downloaded verifier still contains sample_m3u."
+            echo
+            echo "The verifier must process the real input playlist."
+            echo "Expected source:"
+            echo "gh-pages/Extra_channels2026.m3u"
+            echo
+            exit 1
+          fi
+
+          if ! grep -q "INPUT_PLAYLIST" \
+            CINERAMA_SCALA_GRAPH_PROCESSOR_verificator.py
+          then
+            echo
+            echo "ERROR:"
+            echo "INPUT_PLAYLIST was not found in verifier."
+            exit 1
+          fi
+
+          if ! grep -q "SEGMENT_CHECK_COUNT" \
+            CINERAMA_SCALA_GRAPH_PROCESSOR_verificator.py
+          then
+            echo
+            echo "ERROR:"
+            echo "HLS segment verification was not found."
+            exit 1
+          fi
+
+          echo "Verifier mode: OK"
+
+      # ============================================================
+      # 6. ЗАПУСК PYTHON
+      # ============================================================
+
+      - name: Run Cinerama verifier
+        shell: bash
+        run: |
+          set -o pipefail
+
+          echo "============================================================"
+          echo "START REAL CINERAMA HLS VERIFICATION"
+          echo "============================================================"
+
+          echo
+          echo "INPUT:"
+          echo "gh-pages/Extra_channels2026.m3u"
+
+          echo
+          echo "PROCESSOR:"
+          echo "CINERAMA_SCALA_GRAPH_PROCESSOR_verificator.py"
+
+          echo
+          echo "OUTPUT:"
+          echo "Extra_channels2026_verified.m3u"
+
+          echo
+
+          python3 \
+            CINERAMA_SCALA_GRAPH_PROCESSOR_verificator.py \
+            Extra_channels2026.m3u
+
+      # ============================================================
+      # 7. ПРОВЕРКА РЕЗУЛЬТАТОВ
+      # ============================================================
+
+      - name: Validate generated files
+        shell: bash
+        run: |
+          set -e
+
+          echo "============================================================"
+          echo "VALIDATE GENERATED FILES"
+          echo "============================================================"
+
+          test -f playlist_log.txt
+
+          test -f Extra_channels2026_verified.m3u
+
+          echo
+          echo "Log:"
+          ls -lh playlist_log.txt
+
+          echo
+          echo "Verified playlist:"
+          ls -lh Extra_channels2026_verified.m3u
+
+          echo
+          echo "Verified playlist header:"
+          head -n 10 Extra_channels2026_verified.m3u
+
+          echo
+          echo "VERIFIED playlist stream count:"
+
+          grep -cE '^https?://' \
+            Extra_channels2026_verified.m3u \
+            || true
+
+      # ============================================================
+      # 8. ПОКАЗ ФИНАЛЬНОЙ СТАТИСТИКИ
+      # ============================================================
+
+      - name: Show final statistics
+        shell: bash
+        run: |
+          echo "============================================================"
+          echo "FINAL STATISTICS"
+          echo "============================================================"
+
+          grep -A 80 \
+            "ИТОГОВАЯ СТАТИСТИКА / FINAL STATISTICS" \
+            playlist_log.txt \
+            || true
+
+      # ============================================================
+      # 9. COMMIT LOG В MAIN
+      # ============================================================
+
+      - name: Commit verification log to main
+        shell: bash
+        run: |
+          set -e
+
+          echo "============================================================"
+          echo "COMMIT LOG TO MAIN"
+          echo "============================================================"
+
+          git config user.name \
+            "github-actions[bot]"
+
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add playlist_log.txt
+
+          if git diff --cached --quiet
+          then
+            echo "playlist_log.txt has no changes."
+
+          else
+            git commit \
+              -m "Update Cinerama verification log"
+
+            git push origin HEAD:main
+          fi
+
+      # ============================================================
+      # 10. FETCH GH-PAGES-2
+      # ============================================================
+
+      - name: Prepare gh-pages-2
+        shell: bash
+        run: |
+          set -e
+
+          echo "============================================================"
+          echo "PREPARE GH-PAGES-2"
+          echo "============================================================"
+
+          if git ls-remote \
+            --exit-code \
+            --heads origin gh-pages-2 \
+            >/dev/null 2>&1
+          then
+
+            echo "gh-pages-2 already exists."
+
+            git fetch \
+              origin \
+              gh-pages-2
+
+            git worktree add \
+              gh-pages-2 \
+              origin/gh-pages-2
+
+          else
+
+            echo "gh-pages-2 does not exist."
+            echo "Creating orphan branch."
+
+            git worktree add \
+              --detach \
+              gh-pages-2
+
+            cd gh-pages-2
+
+            git switch --orphan gh-pages-2
+
+            git rm -rf . \
+              2>/dev/null || true
+
+            find . \
+              -mindepth 1 \
+              -maxdepth 1 \
+              -exec rm -rf {} +
+
+          fi
+
+      # ============================================================
+      # 11. ПУБЛИКАЦИЯ VERIFIED PLAYLIST В GH-PAGES-2
+      # ============================================================
+
+      - name: Publish verified playlist to gh-pages-2
+        shell: bash
+        run: |
+          set -e
+
+          echo "============================================================"
+          echo "PUBLISH VERIFIED PLAYLIST"
+          echo "============================================================"
+
+          cp \
+            Extra_channels2026_verified.m3u \
+            gh-pages-2/Extra_channels2026_verified.m3u
+
+          cd gh-pages-2
+
+          echo
+          echo "Published file:"
+          ls -lh \
+            Extra_channels2026_verified.m3u
+
+          echo
+          echo "Playlist header:"
+          head -n 10 \
+            Extra_channels2026_verified.m3u
+
+      # ============================================================
+      # 12. COMMIT / PUSH В GH-PAGES-2
+      # ============================================================
+
+      - name: Commit verified playlist to gh-pages-2
+        shell: bash
+        run: |
+          set -e
+
+          echo "============================================================"
+          echo "PUSH VERIFIED PLAYLIST TO GH-PAGES-2"
+          echo "============================================================"
+
+          cd gh-pages-2
+
+          git config user.name \
+            "github-actions[bot]"
+
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            Extra_channels2026_verified.m3u
+
+          if git diff --cached --quiet
+          then
+
+            echo "Verified playlist has no changes."
+
+          else
+
+            git commit \
+              -m "Update verified Cinerama playlist"
+
+            git push \
+              origin \
+              HEAD:gh-pages-2
+
+          fi
+
+      # ============================================================
+      # 13. ФИНАЛЬНЫЙ ОТЧЁТ
+      # ============================================================
+
+      - name: Final result
+        shell: bash
+        run: |
+          echo
+          echo "============================================================"
+          echo "CINERAMA PROCESSING COMPLETED"
+          echo "============================================================"
+          echo
+          echo "SOURCE:"
+          echo "  gh-pages/Extra_channels2026.m3u"
+          echo
+          echo "PYTHON:"
+          echo "  main/CINERAMA_SCALA_GRAPH_PROCESSOR_verificator.py"
+          echo
+          echo "LOG:"
+          echo "  main/playlist_log.txt"
+          echo
+          echo "VERIFIED RESULT:"
+          echo "  gh-pages-2/Extra_channels2026_verified.m3u"
+          echo
+          echo "============================================================"
